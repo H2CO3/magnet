@@ -65,8 +65,8 @@
 //!
 //!   * `[ ]` respect Serde tagging conventions: external/internal/adjacent
 //!
-//! * `[ ]` In top-level documents, allow specification of an ID/"primary
-//!   key" field which will map from/to `_id` **only** when the JSON schema
+//! * `[ ]` In top-level documents, allow specifying an ID/"primary key"
+//!   field which will map from/to `_id` **only** when the JSON schema
 //!   is generated (and **not** during normal value de/serialization).
 //!
 //! * `[ ]` Respect more `#[serde(...)]` attributes, for example: `rename`,

@@ -1,6 +1,6 @@
 # Magnet, a JSON schema generator
 
-These two related crates, `magnet_derive` and `magnet_schema` help you define (and, in most cases, automatically derive) JSON schemas for your domain model types. Currently, the primary use case for this library is to make it easy to validate serializeable types when using the [MongoDB Rust driver](https://docs.rs/mongodb/).
+These two related crates, `magnet_derive` and `magnet_schema` help you define (and, in most cases, automatically derive) MongoDB-flavored [JSON schemas](https://docs.mongodb.com/manual/reference/operator/query/jsonSchema/#extensions) for your domain model types. Currently, the primary use case for this library is to make it easy to validate serializeable types when using the [MongoDB Rust driver](https://docs.rs/mongodb/).
 
 The defined `BsonSchema` trait defines a single function, `bson_schema`, which should/will return a Bson `Document` that is a valid JSON schema describing the structure of the implementing type. Example:
 
