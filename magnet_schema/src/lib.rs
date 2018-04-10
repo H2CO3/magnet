@@ -69,7 +69,7 @@ impl_bson_schema_int! {
     u32: u32::MIN => u32::MAX;
     u64: u64::MIN => i64::MAX; // !!! must not overflow i64
     i8 :  i8::MIN =>  i8::MAX;
-    i16: i16::MIN => i16::MIN;
+    i16: i16::MIN => i16::MAX;
     i32: i32::MIN => i32::MAX;
     i64: i64::MIN => i64::MAX;
 }
