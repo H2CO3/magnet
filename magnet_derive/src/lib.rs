@@ -107,7 +107,10 @@ fn impl_bson_schema_tuple_struct(fields: Punctuated<Field, Comma>) -> Tokens {
 /// Implements `BsonSchema` for a unit `struct` with no fields.
 fn impl_bson_schema_unit_struct() -> Tokens {
     quote! {
-        doc!{ "type": "null" }
+        doc! {
+            "type": ["array", "null"],
+            "maxItems": 0,
+        }
     }
 }
 
