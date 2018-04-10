@@ -1,4 +1,88 @@
 //! Magnet, a JSON/BSON schema generator.
+//!
+//! These two related crates, `magnet_schema` and `magnet_derive` define
+//! a trait, `BsonSchema`, and a proc-macro derive for the same trait,
+//! which allows types to easily implement JSON schema validation for
+//! use with MongoDB.
+//!
+//! The trait defines a single function, `bson_schema()`, that returns
+//! a BSON `Document` describing the validation schema of the type based
+//! on its fields (for `struct`s and tuples), variants (for `enum`s), or
+//! elements/entries (for array- and map-like types).
+//!
+//! The types are expected to be serialized and deserialized using Serde,
+//! and generally `Magnet` will try very hard to respect `#[serde(...)]`
+//! annotations as faithfully as possible, but no `Serialize + Deserialize`
+//! trait bounds are enforced on the types as this is not strictly necessary.
+//!
+//! Example usage:
+//!
+//! ```rust
+//! #[macro_use]
+//! extern crate bson;
+//! #[macro_use]
+//! extern crate magnet_derive;
+//! extern crate magnet_schema;
+//!
+//! use std::collections::HashMap;
+//! use magnet_schema::BsonSchema;
+//!
+//! #[derive(BsonSchema)]
+//! struct Animal {
+//!     age_months: usize,
+//!     species_name: &'static str,
+//!     subspecies_endangered: HashMap<String, bool>,
+//! }
+//!
+//! fn main() {
+//!     let schema_doc = Animal::bson_schema();
+//!     println!("{:#?}", schema_doc);
+//! }
+//! ```
+//!
+//! Roadmap:
+//!
+//! * `[x]` Define `BsonSchema` trait
+//!
+//! * `[x]` `impl BsonSchema` for most primitives/`std::` types
+//!
+//! * `[ ]` Cargo `feature`s for implementing `BsonSchema` for "atomic"
+//!   types in foreign crates, for instance, `hyper::Url` and `uuid::Uuid`.
+//!
+//! * `[x]` `#[derive(BsonSchema)]` on regular, named-field structs
+//!
+//! * `[ ]` `#[derive(BsonSchema)]` on tuple structs
+//!
+//! * `[x]` `#[derive(BsonSchema)]` on unit structs
+//!
+//! * `[ ]` `#[derive(BsonSchema)]` on enums
+//!
+//!   * `[ ]` unit variants
+//!
+//!   * `[ ]` newtype/tuple variants
+//!
+//!   * `[ ]` struct variants
+//!
+//!   * `[ ]` respect Serde tagging conventions: external/internal/adjacent
+//!
+//! * `[ ]` In top-level documents, allow specification of an ID/"primary
+//!   key" field which will map from/to `_id` **only** when the JSON schema
+//!   is generated (and **not** during normal value de/serialization).
+//!
+//! * `[ ]` Respect more `#[serde(...)]` attributes, for example: `rename`,
+//!   `rename_all`, `skip`, etc.
+//!
+//! * `[ ]` Handle generic types in proc-macro derive
+//!
+//! * `[ ]` Standard (non-MongoDB-specific) JSON schema support (approach?)
+//!
+//! * `[ ]` **UNIT TESTS!!!**
+//!
+//! * `[ ]` `impl BsonSchema` for more esoteric primitives/standard types
+//!   such as specialization of `[u8]`/`Vec<u8>` as binary, adding a
+//!   validation regex `"pattern"` to `Path` and `PathBuf`, etc.
+//!
+//! * `[ ]` Add our own attributes if necessary?
 
 #![doc(html_root_url = "https://docs.rs/magnet_schema/0.1.0")]
 #![deny(missing_debug_implementations, missing_copy_implementations,

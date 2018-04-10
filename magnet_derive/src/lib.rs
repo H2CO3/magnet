@@ -1,4 +1,9 @@
 //! Magnet, a JSON/BSON schema generator.
+//!
+//! This crate only contains the `#[derive(BsonSchema)]` proc-macro.
+//! For documentation, please see the [`magnet_schema`][1] crate.
+//!
+//! [1]: https://docs.rs/magnet_schema
 
 #![crate_type = "proc-macro"]
 #![doc(html_root_url = "https://docs.rs/magnet_derive/0.1.0")]
