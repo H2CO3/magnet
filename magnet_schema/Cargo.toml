@@ -1,0 +1,15 @@
+[package]
+name          = "magnet_schema"
+version       = "0.1.0" # remember to update html_root_url in lib.rs and magnet_derive/src/lib.rs
+authors       = ["Árpád Goretity <h2co3@h2co3.org>"]
+repository    = "https://github.com/H2CO3/magnet.git"
+homepage      = "https://h2co3.github.io/magnet/"
+license       = "MIT"
+readme        = "README.md"
+documentation = "https://docs.rs/magnet_schema"
+description   = "Magnet, a JSON/BSON schema generator"
+keywords      = ["database", "mongodb", "json", "derive", "macro"]
+categories    = ["database", "database-implementations", "development-tools", "api-bindings", "web-programming"]
+
+[dependencies]
+bson = "0.10.0"

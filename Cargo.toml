@@ -1,0 +1,2 @@
+[workspace]
+members = ["magnet_schema", "magnet_derive"]
