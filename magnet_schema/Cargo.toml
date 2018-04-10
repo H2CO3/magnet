@@ -13,3 +13,6 @@ categories    = ["database", "database-implementations", "development-tools", "a
 
 [dependencies]
 bson = "0.10.0"
+
+[dev-dependencies]
+magnet_derive = { path = "../magnet_derive" }

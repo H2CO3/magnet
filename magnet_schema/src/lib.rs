@@ -149,13 +149,13 @@ impl_bson_schema_string! {
     std::path::PathBuf,
 }
 
-impl<'a, T> BsonSchema for &'a T where T: BsonSchema {
+impl<'a, T> BsonSchema for &'a T where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
 }
 
-impl<'a, T> BsonSchema for &'a mut T where T: BsonSchema {
+impl<'a, T> BsonSchema for &'a mut T where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
@@ -238,27 +238,27 @@ impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O }
 impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P }
 
 /// TODO(H2CO3): maybe specialize for `Cow<[u8]>` as binary?
-impl<'a, T> BsonSchema for Cow<'a, T> where T: Clone + BsonSchema {
+impl<'a, T> BsonSchema for Cow<'a, T> where T: ?Sized + Clone + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
 }
 
-impl<T> BsonSchema for Box<T> where T: BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
-}
-
-/// TODO(H2CO3): what about `Weak`?
-impl<T> BsonSchema for Rc<T> where T: BsonSchema {
+impl<T> BsonSchema for Box<T> where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
 }
 
 /// TODO(H2CO3): what about `Weak`?
-impl<T> BsonSchema for Arc<T> where T: BsonSchema {
+impl<T> BsonSchema for Rc<T> where T: ?Sized + BsonSchema {
+    fn bson_schema() -> Document {
+        T::bson_schema()
+    }
+}
+
+/// TODO(H2CO3): what about `Weak`?
+impl<T> BsonSchema for Arc<T> where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
