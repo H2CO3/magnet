@@ -380,48 +380,29 @@ impl<'a, T> BsonSchema for Cow<'a, T> where T: ?Sized + Clone + BsonSchema {
     }
 }
 
-impl<T> BsonSchema for Box<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
-}
-
-/// TODO(H2CO3): what about `Weak`?
-impl<T> BsonSchema for Rc<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
-}
-
-/// TODO(H2CO3): what about `Weak`?
-impl<T> BsonSchema for Arc<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
-}
-
 impl<T> BsonSchema for Cell<T> where T: BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
 }
 
-impl<T> BsonSchema for RefCell<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
+macro_rules! impl_bson_schema_unsized {
+    ($($ty:ident,)*) => {$(
+        impl<T> BsonSchema for $ty<T> where T: ?Sized + BsonSchema {
+            fn bson_schema() -> Document {
+                T::bson_schema()
+            }
+        }
+    )*}
 }
 
-impl<T> BsonSchema for Mutex<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
-}
-
-impl<T> BsonSchema for RwLock<T> where T: ?Sized + BsonSchema {
-    fn bson_schema() -> Document {
-        T::bson_schema()
-    }
+impl_bson_schema_unsized! {
+    Box,
+    Rc,
+    Arc,
+    RefCell,
+    Mutex,
+    RwLock,
 }
 
 /// TODO(H2CO3): maybe specialize for `Vec<u8>` as binary?
@@ -516,6 +497,7 @@ impl<K, V> BsonSchema for BTreeMap<K, V>
 ////////////////////////////////////////////////////////
 // Implementations for useful types in foreign crates //
 ////////////////////////////////////////////////////////
+
 #[cfg(feature = "url")]
 impl BsonSchema for url::Url {
     fn bson_schema() -> Document {
