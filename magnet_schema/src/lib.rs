@@ -139,6 +139,7 @@ use std::{ u8, u16, u32, u64, usize, i8, i16, i32, i64, isize };
 use std::hash::BuildHasher;
 use std::borrow::Cow;
 use std::rc::Rc;
+use std::cell::{ Cell, RefCell };
 use std::sync::{ Arc, Mutex, RwLock };
 use std::collections::{ HashSet, HashMap, BTreeSet, BTreeMap };
 use bson::{ Bson, Document };
@@ -384,13 +385,25 @@ impl<T> BsonSchema for Arc<T> where T: ?Sized + BsonSchema {
     }
 }
 
-impl<T> BsonSchema for Mutex<T> where T: BsonSchema {
+impl<T> BsonSchema for Cell<T> where T: BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
 }
 
-impl<T> BsonSchema for RwLock<T> where T: BsonSchema {
+impl<T> BsonSchema for RefCell<T> where T: ?Sized + BsonSchema {
+    fn bson_schema() -> Document {
+        T::bson_schema()
+    }
+}
+
+impl<T> BsonSchema for Mutex<T> where T: ?Sized + BsonSchema {
+    fn bson_schema() -> Document {
+        T::bson_schema()
+    }
+}
+
+impl<T> BsonSchema for RwLock<T> where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
     }
