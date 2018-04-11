@@ -46,8 +46,8 @@
 //!
 //! * `[x]` `impl BsonSchema` for most primitives/`std::` types
 //!
-//! * `[ ]` Cargo `feature`s for implementing `BsonSchema` for "atomic"
-//!   types in foreign crates, for instance, `hyper::Url` and `uuid::Uuid`.
+//! * `[x]` Cargo `feature`s for implementing `BsonSchema` for "atomic"
+//!   types in foreign crates, for instance, `url::Url` and `uuid::Uuid`.
 //!
 //! * `[x]` `#[derive(BsonSchema)]` on regular, named-field structs
 //!
