@@ -96,7 +96,9 @@ fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Tokens {
     quote! {
         doc! {
             "type": "object",
-            "properties": { #(#property_names: <#types>::bson_schema(),)* },
+            "properties": {
+                #(#property_names: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+            },
             "required": [ #(#required_names,)* ],
             "additionalProperties": false,
         }
