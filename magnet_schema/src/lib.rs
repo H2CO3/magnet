@@ -82,7 +82,27 @@
 //!   such as specialization of `[u8]`/`Vec<u8>` as binary, adding a
 //!   validation regex `"pattern"` to `Path` and `PathBuf`, etc.
 //!
-//! * `[ ]` Add our own attributes if necessary?
+//! * `[ ]` Add our own attributes
+//!
+//!   * `[ ]` `magnet(regex)` custom validation; implies `"type": "string"`.
+//!     Patterns are implicitly enclosed between `^...$` for robustness.
+//!
+//!   * `[ ]` `magnet(unsafe_regex)` like `magnet(regex)`, but no enclosing in
+//!     `^...$` happens. **This may allow invalid data to pass validation!!!**
+//!
+//!   * `[ ]` `magnet(non_empty)` for collections: same as `min_length = "1"`
+//!
+//!   * `[ ]` `magnet(min_length)` for collections/tuples etc.
+//!
+//!   * `[ ]` `magnet(max_length)` for collections/tuples etc.
+//!
+//!   * `[ ]` `magnet(incl_min)` inclusive minimum for numbers
+//!
+//!   * `[ ]` `magnet(excl_min)` exclusive "minimum" (infimum) for numbers
+//!
+//!   * `[ ]` `magnet(incl_max)` inclusive maximum for numbers
+//!
+//!   * `[ ]` `magnet(excl_max)` exclusive "maximum" (supremum) for numbers
 
 #![doc(html_root_url = "https://docs.rs/magnet_schema/0.1.0")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
@@ -110,6 +130,10 @@
 
 #[macro_use]
 extern crate bson;
+#[cfg(feature = "url")]
+extern crate url;
+#[cfg(feature = "uuid")]
+extern crate uuid;
 
 use std::{ u8, u16, u32, u64, usize, i8, i16, i32, i64, isize };
 use std::hash::BuildHasher;
@@ -124,6 +148,10 @@ pub trait BsonSchema {
     /// Returns a BSON document describing the MongoDB-flavored schema of this type.
     fn bson_schema() -> Document;
 }
+
+/////////////////////////////
+// Primitive and std types //
+/////////////////////////////
 
 impl BsonSchema for bool {
     fn bson_schema() -> Document {
@@ -233,6 +261,10 @@ impl_bson_schema_string! {
     std::path::PathBuf,
 }
 
+///////////////////////////////
+// Built-in parametric types //
+///////////////////////////////
+
 impl<'a, T> BsonSchema for &'a T where T: ?Sized + BsonSchema {
     fn bson_schema() -> Document {
         T::bson_schema()
@@ -320,6 +352,10 @@ impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M }
 impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M, N }
 impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O }
 impl_bson_schema_tuple!{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P }
+
+///////////////////////////////////////
+// Generics, Containers, Collections //
+///////////////////////////////////////
 
 /// TODO(H2CO3): maybe specialize for `Cow<[u8]>` as binary?
 impl<'a, T> BsonSchema for Cow<'a, T> where T: ?Sized + Clone + BsonSchema {
@@ -445,6 +481,29 @@ impl<K, V> BsonSchema for BTreeMap<K, V>
         doc! {
             "type": "object",
             "additionalProperties": V::bson_schema(),
+        }
+    }
+}
+
+////////////////////////////////////////////////////////
+// Implementations for useful types in foreign crates //
+////////////////////////////////////////////////////////
+#[cfg(feature = "url")]
+impl BsonSchema for url::Url {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "string",
+            // TODO(H2CO3): validation regex pattern?
+        }
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl BsonSchema for uuid::Uuid {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "string",
+            "pattern": "^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$",
         }
     }
 }

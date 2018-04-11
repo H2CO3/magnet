@@ -14,5 +14,9 @@ categories    = ["database", "database-implementations", "development-tools", "a
 [dependencies]
 bson = "0.10.0"
 
+# for features
+url = { version = "1.5", optional = true }
+uuid = { version = "0.6", optional = true }
+
 [dev-dependencies]
 magnet_derive = { path = "../magnet_derive", version = "0.1.0" }
