@@ -84,25 +84,40 @@
 //!
 //! * `[ ]` Add our own attributes
 //!
-//!   * `[ ]` `magnet(regex)` custom validation; implies `"type": "string"`.
-//!     Patterns are implicitly enclosed between `^...$` for robustness.
+//!   * `[ ]` `magnet(doc_id)` &mdash; renames the field to `_id` in the schema.
 //!
-//!   * `[ ]` `magnet(unsafe_regex)` like `magnet(regex)`, but no enclosing in
-//!     `^...$` happens. **This may allow invalid data to pass validation!!!**
+//!   * `[ ]` `magnet(regex = "foo?|[ba]r{3,6}")` &mdash; custom validation;
+//!     implies `"type": "string"`. Patterns are implicitly enclosed between
+//!     `^...$` for robustness.
 //!
-//!   * `[ ]` `magnet(non_empty)` for collections: same as `min_length = "1"`
+//!   * `[ ]` `magnet(unsafe_regex = "^nasty-regex$")` &mdash; just like
+//!     `magnet(regex)`, but no automatic enclosing in `^...$` happens.
+//!     **This may allow invalid data to pass validation!!!**
 //!
-//!   * `[ ]` `magnet(min_length)` for collections/tuples etc.
+//!   * `[ ]` `magnet(non_empty)` &mdash; for collections: same as `min_length = "1"`.
 //!
-//!   * `[ ]` `magnet(max_length)` for collections/tuples etc.
+//!   * `[ ]` `magnet(min_length = "16")` &mdash; for collections/tuples etc.
 //!
-//!   * `[ ]` `magnet(incl_min)` inclusive minimum for numbers
+//!   * `[ ]` `magnet(max_length = "32")` &mdash; for collections/tuples etc.
 //!
-//!   * `[ ]` `magnet(excl_min)` exclusive "minimum" (infimum) for numbers
+//!   * `[ ]` `magnet(incl_min = "-1337")` &mdash; inclusive minimum for numbers
 //!
-//!   * `[ ]` `magnet(incl_max)` inclusive maximum for numbers
+//!   * `[ ]` `magnet(excl_min = "42")` &mdash; exclusive "minimum" (infimum) for numbers
 //!
-//!   * `[ ]` `magnet(excl_max)` exclusive "maximum" (supremum) for numbers
+//!   * `[ ]` `magnet(incl_max = "63")` &mdash; inclusive maximum for numbers
+//!
+//!   * `[ ]` `magnet(excl_max = "64")` &mdash; exclusive "maximum" (supremum) for numbers
+//!
+//!   * `[ ]` `magnet(allow_extra_fields)` &mdash; sets `"additionalProperties": true`.
+//!     By default, `Magnet` sets this field to `false` for maximal safety.
+//!     Allowing arbitrary data to be inserted in a DB is generally a Bad Idea,
+//!     as it may lead to code injection (`MongoDB` supports storing JavaScript
+//!     in a collection! Madness!) or at best, denial-of-service (DoS) attacks.
+//!
+//!   * `[ ]` `magnet(allow_extra_fields = "ExtraFieldType")` &mdash; sets
+//!     `"additionalProperties": ExtraFieldType::bson_schema()`, so that
+//!     unlisted additional object fields are allowed provided that they
+//!     conform to the schema of the specified type.
 
 #![doc(html_root_url = "https://docs.rs/magnet_schema/0.1.0")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
