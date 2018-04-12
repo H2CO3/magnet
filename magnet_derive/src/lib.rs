@@ -45,7 +45,7 @@ use quote::Tokens;
 /// Implements `BsonSchema` for a given type based on its
 /// recursively contained types in fields or variants.
 /// TODO(H2CO3): handle generics
-#[proc_macro_derive(BsonSchema)]
+#[proc_macro_derive(BsonSchema, attributes(magnet))]
 pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
     let parsed_ast: DeriveInput = syn::parse(input).expect("couldn't parse derive input");
     let type_name = parsed_ast.ident;
