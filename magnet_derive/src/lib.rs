@@ -39,7 +39,7 @@ extern crate proc_macro;
 mod error;
 
 use proc_macro::TokenStream;
-use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta };
+use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta, Lit };
 use syn::token::Comma;
 use syn::punctuated::Punctuated;
 use quote::Tokens;
@@ -49,7 +49,7 @@ use error::{ Error, Result };
 /// and to handle `Result::Err` return values by `panic!()`ing.
 #[proc_macro_derive(BsonSchema, attributes(magnet))]
 pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
-    impl_bson_schema(input).expect("could not `#[derive(BsonSchema)]`")
+    impl_bson_schema(input).unwrap_or_else(|error| panic!("{}", error))
 }
 
 /// Implements `BsonSchema` for a given type based on its
@@ -93,18 +93,8 @@ fn impl_bson_schema_struct(ast: DataStruct) -> Result<Tokens> {
 /// Implements `BsonSchema` for a regular `struct` with named fields.
 fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Result<Tokens> {
     // TODO(H2CO3): handle `serde(rename)`, `serde(rename_all)`, `serde(skip)`, etc.
-    let properties: Vec<_> = fields
-        .iter()
-        .map(|field| {
-            field.ident.as_ref().ok_or_else(
-                || Error::new("no name for named field?!")
-            ).map(
-                AsRef::as_ref
-            )
-        })
-        .collect::<Result<_>>()?;
-    let properties = &properties;
-    let types = fields.iter().map(|field| &field.ty);
+    let types: Vec<_> = fields.iter().map(|field| field.ty.clone()).collect();
+    let properties = &regular_struct_field_names(fields)?;
 
     Ok(quote! {
         doc! {
@@ -122,14 +112,19 @@ fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Result<T
 /// fields of a regular struct with named fields.
 fn regular_struct_field_names(fields: Punctuated<Field, Comma>) -> Result<Vec<String>> {
     let iter = fields.into_iter().map(|field| {
-        let rename_meta = magnet_meta(field.attrs, "rename");
         let name = field.ident.as_ref().ok_or_else(
             || Error::new("no name for named field?!")
         )?;
 
-        // TODO(H2CO3): actually perform renaming
-
-        Ok(name.as_ref().into())
+        match magnet_meta(field.attrs, "rename") {
+            Some(Meta::NameValue(nv)) => match nv.lit {
+                Lit::Str(string) => Ok(string.value()),
+                // TODO(H2CO3): handle valid UTF-8 byte strings
+                _ => Err(Error::new("`rename` attribute must specify a string as the name")),
+            },
+            Some(_) => Err(Error::new("attribute must have form `#[magnet(rename = \"...\")]`")),
+            None => Ok(name.as_ref().into()),
+        }
     });
 
     iter.collect()
@@ -176,7 +171,7 @@ fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
                 if list.ident.as_ref() == "magnet" {
                     list
                 } else {
-                    return None
+                    return None;
                 }
             },
             _ => return None,
