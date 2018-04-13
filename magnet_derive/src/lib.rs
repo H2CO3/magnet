@@ -36,23 +36,32 @@ extern crate quote;
 extern crate syn;
 extern crate proc_macro;
 
+mod error;
+
 use proc_macro::TokenStream;
-use syn::{ DeriveInput, Data, DataStruct, DataEnum, Fields, Field };
+use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta };
 use syn::token::Comma;
 use syn::punctuated::Punctuated;
 use quote::Tokens;
+use error::{ Error, Result };
+
+/// The top-level entry point of this proc-macro. Only here to be exported
+/// and to handle `Result::Err` return values by `panic!()`ing.
+#[proc_macro_derive(BsonSchema, attributes(magnet))]
+pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
+    impl_bson_schema(input).expect("could not `#[derive(BsonSchema)]`")
+}
 
 /// Implements `BsonSchema` for a given type based on its
 /// recursively contained types in fields or variants.
 /// TODO(H2CO3): handle generics
-#[proc_macro_derive(BsonSchema, attributes(magnet))]
-pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
-    let parsed_ast: DeriveInput = syn::parse(input).expect("couldn't parse derive input");
+fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
+    let parsed_ast: DeriveInput = syn::parse(input)?;
     let type_name = parsed_ast.ident;
     let impl_ast = match parsed_ast.data {
-        Data::Struct(s) => impl_bson_schema_struct(s),
-        Data::Enum(e) => impl_bson_schema_enum(e),
-        Data::Union(_) => panic!("`BsonSchema` can't be implemented for unions"),
+        Data::Struct(s) => impl_bson_schema_struct(s)?,
+        Data::Enum(e) => impl_bson_schema_enum(e)?,
+        Data::Union(u) => impl_bson_schema_union(u)?,
     };
     let generated = quote! {
         #[automatically_derived]
@@ -63,11 +72,11 @@ pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
         }
     };
 
-    generated.into()
+    Ok(generated.into())
 }
 
 /// Implements `BsonSchema` for a `struct`.
-fn impl_bson_schema_struct(ast: DataStruct) -> Tokens {
+fn impl_bson_schema_struct(ast: DataStruct) -> Result<Tokens> {
     match ast.fields {
         Fields::Named(fields) => {
             impl_bson_schema_regular_struct(fields.named)
@@ -82,47 +91,116 @@ fn impl_bson_schema_struct(ast: DataStruct) -> Tokens {
 }
 
 /// Implements `BsonSchema` for a regular `struct` with named fields.
-fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Tokens {
-    // TODO(H2CO3): figure out and handle `"id"`-vs.-`"_id"`!!!
+fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Result<Tokens> {
     // TODO(H2CO3): handle `serde(rename)`, `serde(rename_all)`, `serde(skip)`, etc.
-    let property_names = fields.iter().map(
-        |field| field.ident.as_ref().expect("no name for named field?!").as_ref()
-    );
-    let required_names = fields.iter().map(
-        |field| field.ident.as_ref().expect("no name for named field?!").as_ref()
-    );
+    let properties: Vec<_> = fields
+        .iter()
+        .map(|field| {
+            field.ident.as_ref().ok_or_else(
+                || Error::new("no name for named field?!")
+            ).map(
+                AsRef::as_ref
+            )
+        })
+        .collect::<Result<_>>()?;
+    let properties = &properties;
     let types = fields.iter().map(|field| &field.ty);
 
-    quote! {
+    Ok(quote! {
         doc! {
             "type": "object",
             "properties": {
-                #(#property_names: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
             },
-            "required": [ #(#required_names,)* ],
+            "required": [ #(#properties,)* ],
             "additionalProperties": false,
         }
-    }
+    })
+}
+
+/// Returns an iterator over the potentially-`#magnet[rename(...)]`d
+/// fields of a regular struct with named fields.
+fn regular_struct_field_names(fields: Punctuated<Field, Comma>) -> Result<Vec<String>> {
+    let iter = fields.into_iter().map(|field| {
+        let rename_meta = magnet_meta(field.attrs, "rename");
+        let name = field.ident.as_ref().ok_or_else(
+            || Error::new("no name for named field?!")
+        )?;
+
+        // TODO(H2CO3): actually perform renaming
+
+        Ok(name.as_ref().into())
+    });
+
+    iter.collect()
 }
 
 /// Implements `BsonSchema` for a tuple `struct` with unnamed/numbered fields.
 /// TODO(H2CO3): implement me
-fn impl_bson_schema_tuple_struct(fields: Punctuated<Field, Comma>) -> Tokens {
-    unimplemented!()
+fn impl_bson_schema_tuple_struct(fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+    Err(Error::new("`#[derive(BsonSchema)]` for tuple `struct`s is not implemented"))
 }
 
 /// Implements `BsonSchema` for a unit `struct` with no fields.
-fn impl_bson_schema_unit_struct() -> Tokens {
-    quote! {
+fn impl_bson_schema_unit_struct() -> Result<Tokens> {
+    Ok(quote! {
         doc! {
             "type": ["array", "null"],
             "maxItems": 0,
         }
-    }
+    })
 }
 
 /// Implements `BsonSchema` for an `enum`.
 /// TODO(H2CO3): implement me
-fn impl_bson_schema_enum(ast: DataEnum) -> Tokens {
-    unimplemented!()
+fn impl_bson_schema_enum(ast: DataEnum) -> Result<Tokens> {
+    Err(Error::new("`#[derive(BsonSchema)]` for `enum`s is not implemented"))
+}
+
+/// Implements `BsonSchema` for a `union`.
+fn impl_bson_schema_union(_ast: DataUnion) -> Result<Tokens> {
+    Err(Error::new("`BsonSchema` can't be implemented for unions"))
+}
+
+/////////////////////
+// General Helpers //
+/////////////////////
+
+/// Returns the inner, `...` part of the first `#[magnet(...)]` attribute
+/// with the specified name (like `#[magnet(name ( = "value")?)]`).
+/// TODO(H2CO3): check for duplicate arguments and bail out with an error
+fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
+    attrs.into_iter().filter_map(|attr| {
+        let meta_list = match attr.interpret_meta()? {
+            Meta::List(list) => {
+                if list.ident.as_ref() == "magnet" {
+                    list
+                } else {
+                    return None
+                }
+            },
+            _ => return None,
+        };
+
+        meta_list.nested.into_iter().filter_map(|nested_meta| {
+            let meta = match nested_meta {
+                NestedMeta::Meta(meta) => meta,
+                _ => return None,
+            };
+
+            let ident = match meta {
+                Meta::Word(ident) => ident,
+                Meta::List(ref list) => list.ident,
+                Meta::NameValue(ref name_value) => name_value.ident,
+            };
+
+            if ident.as_ref() == name {
+                Some(meta)
+            } else {
+                None
+            }
+        })
+        .next()
+    })
+    .next()
 }
