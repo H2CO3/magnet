@@ -4,7 +4,11 @@ use std::fmt;
 use std::error;
 use std::result;
 use std::ops::Deref;
+use std::string::FromUtf8Error;
 use syn::synom::ParseError;
+
+/// Convenience type alias for a result that holds a `magnet_derive::Error` value.
+pub type Result<T> = result::Result<T, Error>;
 
 /// An error that potentially happens while `#[derive]`ing `BsonSchema`.
 #[derive(Debug)]
@@ -53,5 +57,11 @@ impl From<ParseError> for Error {
     }
 }
 
-/// Convenience type alias for a result that holds a `magnet_derive::Error` value.
-pub type Result<T> = result::Result<T, Error>;
+impl From<FromUtf8Error> for Error {
+    fn from(error: FromUtf8Error) -> Self {
+        Error {
+            message: String::from("byte string is not valid UTF-8"),
+            cause: Some(Box::new(error)),
+        }
+    }
+}

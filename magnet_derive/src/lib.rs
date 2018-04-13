@@ -39,7 +39,7 @@ extern crate proc_macro;
 mod error;
 
 use proc_macro::TokenStream;
-use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta, Lit };
+use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta, Lit, MetaNameValue };
 use syn::token::Comma;
 use syn::punctuated::Punctuated;
 use quote::Tokens;
@@ -116,15 +116,16 @@ fn regular_struct_field_names(fields: Punctuated<Field, Comma>) -> Result<Vec<St
             || Error::new("no name for named field?!")
         )?;
 
-        match magnet_meta(field.attrs, "rename") {
-            Some(Meta::NameValue(nv)) => match nv.lit {
-                Lit::Str(string) => Ok(string.value()),
-                // TODO(H2CO3): handle valid UTF-8 byte strings
-                _ => Err(Error::new("`rename` attribute must specify a string as the name")),
+        let name = match magnet_meta_name_value(field.attrs, "rename")? {
+            Some(nv) => match nv.lit {
+                Lit::Str(string) => string.value(),
+                Lit::ByteStr(string) => String::from_utf8(string.value())?,
+                _ => Err(Error::new("`rename` attribute must specify a string as the name"))?,
             },
-            Some(_) => Err(Error::new("attribute must have form `#[magnet(rename = \"...\")]`")),
-            None => Ok(name.as_ref().into()),
-        }
+            None => name.as_ref().into(),
+        };
+
+        Ok(name)
     });
 
     iter.collect()
@@ -198,4 +199,16 @@ fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
         .next()
     })
     .next()
+}
+
+/// Search for a `Magnet` attribute, provided that it's a name-value pair.
+fn magnet_meta_name_value(attrs: Vec<Attribute>, name: &str) -> Result<Option<MetaNameValue>> {
+    match magnet_meta(attrs, name) {
+        Some(Meta::NameValue(name_value)) => Ok(Some(name_value)),
+        Some(_) => {
+            let msg = format!("attribute must have form `#[magnet({} = \"...\")]`", name);
+            Err(Error::new(msg))
+        },
+        None => Ok(None),
+    }
 }
