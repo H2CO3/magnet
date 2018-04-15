@@ -44,6 +44,7 @@ use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, At
 use syn::token::Comma;
 use syn::punctuated::Punctuated;
 use quote::Tokens;
+use case::RenameRule;
 use error::{ Error, Result };
 
 /// The top-level entry point of this proc-macro. Only here to be exported
@@ -97,8 +98,7 @@ fn impl_bson_schema_struct(attrs: Vec<Attribute>, ast: DataStruct) -> Result<Tok
 
 /// Implements `BsonSchema` for a regular `struct` with named fields.
 fn impl_bson_schema_regular_struct(attrs: Vec<Attribute>, fields: Punctuated<Field, Comma>) -> Result<Tokens> {
-    // TODO(H2CO3): handle `serde(rename)`, `serde(rename_all)`, `serde(skip)`, etc.
-    let properties = &regular_struct_field_names(&fields)?;
+    let properties = &regular_struct_field_names(&attrs, &fields)?;
     let types = fields.iter().map(|field| &field.ty);
 
     Ok(quote! {
@@ -115,7 +115,13 @@ fn impl_bson_schema_regular_struct(attrs: Vec<Attribute>, fields: Punctuated<Fie
 
 /// Returns an iterator over the potentially-`#magnet[rename(...)]`d
 /// fields of a regular struct with named fields.
-fn regular_struct_field_names(fields: &Punctuated<Field, Comma>) -> Result<Vec<String>> {
+fn regular_struct_field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result<Vec<String>> {
+    let rename_all_str = serde_meta_name_value(attrs, "rename_all")?;
+    let rename_all: Option<RenameRule> = match rename_all_str {
+        Some(s) => Some(meta_value_as_str(&s)?.parse()?),
+        None => None,
+    };
+
     let iter = fields.iter().map(|field| {
         let name = field.ident.as_ref().ok_or_else(
             || Error::new("no name for named field?!")
@@ -124,12 +130,11 @@ fn regular_struct_field_names(fields: &Punctuated<Field, Comma>) -> Result<Vec<S
         let magnet_rename = magnet_meta_name_value(&field.attrs, "rename")?;
         let serde_rename = serde_meta_name_value(&field.attrs, "rename")?;
         let name = match magnet_rename.or(serde_rename) {
-            Some(nv) => match nv.lit {
-                Lit::Str(string) => string.value(),
-                Lit::ByteStr(string) => String::from_utf8(string.value())?,
-                _ => Err(Error::new("`rename` attribute must specify a string as the name"))?,
-            },
-            None => name.as_ref().into(),
+            Some(nv) => meta_value_as_str(&nv)?,
+            None => rename_all.map_or(
+                name.as_ref().into(),
+                |rule| rule.apply_to_field(name.as_ref()),
+            ),
         };
 
         Ok(name)
@@ -236,4 +241,14 @@ fn magnet_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaN
 /// Search for a `Serde` attribute, provided that it's a name-value pair.
 fn serde_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
     meta_name_value(attrs, "serde", key)
+}
+
+/// Extracts a string value from an attribute value.
+/// Returns `Err` if the value is not a `LitStr` nor a valid UTF-8 `LitByteStr`.
+fn meta_value_as_str(nv: &MetaNameValue) -> Result<String> {
+    match nv.lit {
+        Lit::Str(ref string) => Ok(string.value()),
+        Lit::ByteStr(ref string) => String::from_utf8(string.value()).map_err(Into::into),
+        _ => Err(Error::new("attribute value must be a valid UTF-8 string")),
+    }
 }
