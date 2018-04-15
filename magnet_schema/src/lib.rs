@@ -1,4 +1,4 @@
-//! Magnet, a JSON/BSON schema generator.
+//! # Magnet, a JSON/BSON schema generator
 //!
 //! These two related crates, `magnet_schema` and `magnet_derive` define
 //! a trait, `BsonSchema`, and a proc-macro derive for the same trait,
@@ -11,11 +11,11 @@
 //! elements/entries (for array- and map-like types).
 //!
 //! The types are expected to be serialized and deserialized using Serde,
-//! and generally `Magnet` will try very hard to respect `#[serde(...)]`
+//! and generally Magnet will try very hard to respect `#[serde(...)]`
 //! annotations as faithfully as possible, but no `Serialize + Deserialize`
 //! trait bounds are enforced on the types as this is not strictly necessary.
 //!
-//! Example usage:
+//! ## Usage Example
 //!
 //! ```rust
 //! #[macro_use]
@@ -24,23 +24,37 @@
 //! extern crate magnet_derive;
 //! extern crate magnet_schema;
 //!
-//! use std::collections::HashMap;
+//! use std::collections::HashSet;
 //! use magnet_schema::BsonSchema;
 //!
 //! #[derive(BsonSchema)]
-//! struct Animal {
-//!     age_months: usize,
-//!     species_name: &'static str,
-//!     subspecies_endangered: HashMap<String, bool>,
+//! struct Contact {
+//!     name: String,
+//!     nicknames: HashSet<String>,
+//!     age: usize,
+//!     email: Option<String>,
 //! }
 //!
 //! fn main() {
-//!     let schema_doc = Animal::bson_schema();
+//!     let schema_doc = Contact::bson_schema();
 //!     println!("{:#?}", schema_doc);
 //! }
 //! ```
 //!
-//! Roadmap:
+//! ## Custom Attributes
+//!
+//! * `#[magnet(rename = "new_name")]`: applied to a `struct` field or an `enum`
+//!   variant, it will rename it to the provided new name when generating the
+//!   JSON schema. This attribute overrides `#[serde(rename = "...")]` (in the
+//!   generated JSON schema only!) if it is present on the same field.
+//!
+//! * `#[serde(rename = "new_name")]`: Magnet will respect Serde's field/variant
+//!   renaming attribute by default, if Magnet's own `rename` is not present.
+//!
+//! * `#[serde(rename_all = "rename_rule")]`: it will also respect Serde's
+//!   `rename_all` rule if Magnet's own `rename` attribute is not specified.
+//!
+//! ## Development Roadmap
 //!
 //! * `[x]` Define `BsonSchema` trait
 //!
@@ -51,9 +65,9 @@
 //!
 //! * `[x]` `#[derive(BsonSchema)]` on regular, named-field structs
 //!
-//! * `[ ]` `#[derive(BsonSchema)]` on newtype structs
+//! * `[x]` `#[derive(BsonSchema)]` on newtype structs
 //!
-//! * `[ ]` `#[derive(BsonSchema)]` on tuple structs
+//! * `[x]` `#[derive(BsonSchema)]` on tuple structs
 //!
 //! * `[x]` `#[derive(BsonSchema)]` on unit structs
 //!
@@ -115,7 +129,7 @@
 //!   * `[ ]` `magnet(excl_max = "64")` &mdash; exclusive "maximum" (supremum) for numbers
 //!
 //!   * `[ ]` `magnet(allow_extra_fields)` &mdash; sets `"additionalProperties": true`.
-//!     By default, `Magnet` sets this field to `false` for maximal safety.
+//!     By default, Magnet sets this field to `false` for maximal safety.
 //!     Allowing arbitrary data to be inserted in a DB is generally a Bad Idea,
 //!     as it may lead to code injection (`MongoDB` supports storing JavaScript
 //!     in a collection! Madness!) or at best, denial-of-service (DoS) attacks.

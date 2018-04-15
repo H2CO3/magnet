@@ -15,8 +15,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-// See https://users.rust-lang.org/t/psa-dealing-with-warning-unused-import-std-ascii-asciiext-in-today-s-nightly/13726
-
 use std::str::FromStr;
 use error::{ Error, Result };
 use self::RenameRule::*;
@@ -27,7 +25,7 @@ pub enum RenameRule {
     /// Rename direct children to "lowercase" style.
     LowerCase,
     /// Rename direct children to "UPPERCASE" style.
-    UPPERCASE,
+    Uppercase,
     /// Rename direct children to "PascalCase" style, as typically used for enum variants.
     PascalCase,
     /// Rename direct children to "camelCase" style.
@@ -47,7 +45,7 @@ impl RenameRule {
         match self {
             PascalCase => variant.to_owned(),
             LowerCase => variant.to_ascii_lowercase(),
-            UPPERCASE => variant.to_ascii_uppercase(),
+            Uppercase => variant.to_ascii_uppercase(),
             CamelCase => variant[..1].to_ascii_lowercase() + &variant[1..],
             SnakeCase => {
                 let mut snake = String::new();
@@ -70,7 +68,7 @@ impl RenameRule {
     pub fn apply_to_field(self, field: &str) -> String {
         match self {
             LowerCase | SnakeCase => field.to_owned(),
-            UPPERCASE => field.to_ascii_uppercase(),
+            Uppercase => field.to_ascii_uppercase(),
             PascalCase => {
                 let mut pascal = String::new();
                 let mut capitalize = true;
@@ -103,7 +101,7 @@ impl FromStr for RenameRule {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "lowercase"            => Ok(LowerCase),
-            "UPPERCASE"            => Ok(UPPERCASE),
+            "UPPERCASE"            => Ok(Uppercase),
             "PascalCase"           => Ok(PascalCase),
             "camelCase"            => Ok(CamelCase),
             "snake_case"           => Ok(SnakeCase),
