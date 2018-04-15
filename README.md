@@ -19,7 +19,7 @@ extern crate magnet_derive;
 extern crate magnet_schema;
 extern crate mongodb;
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 use magnet_schema::BsonSchema;
 
 use mongodb::{ Client, ThreadedClient, Error, Result, CommandType };
@@ -27,19 +27,20 @@ use mongodb::db::{ Database, ThreadedDatabase };
 use mongodb::coll::Collection;
 
 #[derive(BsonSchema)]
-struct Animal {
-    age_months: usize,
-    species_name: &'static str,
-    subspecies_endangered: HashMap<String, bool>,
+struct Contact {
+    name: String,
+    nicknames: HashSet<String>,
+    age: usize,
+    email: Option<String>,
 }
 
 fn main() {
-    let schema = Animal::bson_schema();
+    let schema = Contact::bson_schema();
     let spec = doc! {
-        "create": "Animal",
+        "create": "Contact",
         "validator": { "$jsonSchema": schema },
     };
-    let client = connect("localhost", 27017).expect("can't connect to mongod");
+    let client = Client::connect("localhost", 27017).expect("can't connect to mongod");
     let db = client.db("Example");
     let result = db.command(spec, CommandType::CreateCollection, None).expect("network error");
     // etc.
