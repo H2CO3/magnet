@@ -51,6 +51,8 @@
 //!
 //! * `[x]` `#[derive(BsonSchema)]` on regular, named-field structs
 //!
+//! * `[ ]` `#[derive(BsonSchema)]` on newtype structs
+//!
 //! * `[ ]` `#[derive(BsonSchema)]` on tuple structs
 //!
 //! * `[x]` `#[derive(BsonSchema)]` on unit structs
@@ -59,18 +61,19 @@
 //!
 //!   * `[ ]` unit variants
 //!
-//!   * `[ ]` newtype/tuple variants
+//!   * `[ ]` newtype variants
+//!
+//!   * `[ ]` tuple variants
 //!
 //!   * `[ ]` struct variants
 //!
 //!   * `[ ]` respect Serde tagging conventions: external/internal/adjacent
 //!
-//! * `[ ]` In top-level documents, allow specifying an ID/"primary key"
-//!   field which will map from/to `_id` **only** when the JSON schema
-//!   is generated (and **not** during normal value de/serialization).
+//! * `[x]` Respect more `#[serde(...)]` attributes, for example: `rename`,
+//!   `rename_all`
 //!
-//! * `[ ]` Respect more `#[serde(...)]` attributes, for example: `rename`,
-//!   `rename_all`, `skip`, etc.
+//! * `[ ]` Respect more `#[serde(...)]` attributes, for example: `default`,
+//!   `skip`, `skip_serializing`, `skip_deserializing`
 //!
 //! * `[ ]` Handle generic types in proc-macro derive
 //!
@@ -78,13 +81,16 @@
 //!
 //! * `[ ]` **UNIT TESTS!!!**
 //!
+//! * `[ ]` **DOCUMENTATION FOR ATTRIBUTES!!!**
+//!
 //! * `[ ]` `impl BsonSchema` for more esoteric primitives/standard types
 //!   such as specialization of `[u8]`/`Vec<u8>` as binary, adding a
 //!   validation regex `"pattern"` to `Path` and `PathBuf`, etc.
 //!
 //! * `[ ]` Add our own attributes
 //!
-//!   * `[ ]` `magnet(doc_id)` &mdash; renames the field to `_id` in the schema.
+//!   * `[x]` `magnet(rename = "...")` &mdash; renames the field or variant
+//!     to the name specified as the value of the `rename` attribute
 //!
 //!   * `[ ]` `magnet(regex = "foo?|[ba]r{3,6}")` &mdash; custom validation;
 //!     implies `"type": "string"`. Patterns are implicitly enclosed between
