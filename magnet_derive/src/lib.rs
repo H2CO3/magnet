@@ -59,9 +59,9 @@ fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
     let parsed_ast: DeriveInput = syn::parse(input)?;
     let type_name = parsed_ast.ident;
     let impl_ast = match parsed_ast.data {
-        Data::Struct(s) => impl_bson_schema_struct(s)?,
-        Data::Enum(e) => impl_bson_schema_enum(e)?,
-        Data::Union(u) => impl_bson_schema_union(u)?,
+        Data::Struct(s) => impl_bson_schema_struct(parsed_ast.attrs, s)?,
+        Data::Enum(e) => impl_bson_schema_enum(parsed_ast.attrs, e)?,
+        Data::Union(u) => impl_bson_schema_union(parsed_ast.attrs, u)?,
     };
     let generated = quote! {
         #[automatically_derived]
@@ -76,10 +76,10 @@ fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
 }
 
 /// Implements `BsonSchema` for a `struct`.
-fn impl_bson_schema_struct(ast: DataStruct) -> Result<Tokens> {
+fn impl_bson_schema_struct(attrs: Vec<Attribute>, ast: DataStruct) -> Result<Tokens> {
     match ast.fields {
         Fields::Named(fields) => {
-            impl_bson_schema_regular_struct(fields.named)
+            impl_bson_schema_regular_struct(attrs, fields.named)
         },
         Fields::Unnamed(fields) => {
             impl_bson_schema_tuple_struct(fields.unnamed)
@@ -91,10 +91,10 @@ fn impl_bson_schema_struct(ast: DataStruct) -> Result<Tokens> {
 }
 
 /// Implements `BsonSchema` for a regular `struct` with named fields.
-fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+fn impl_bson_schema_regular_struct(attrs: Vec<Attribute>, fields: Punctuated<Field, Comma>) -> Result<Tokens> {
     // TODO(H2CO3): handle `serde(rename)`, `serde(rename_all)`, `serde(skip)`, etc.
-    let types: Vec<_> = fields.iter().map(|field| field.ty.clone()).collect();
-    let properties = &regular_struct_field_names(fields)?;
+    let properties = &regular_struct_field_names(&fields)?;
+    let types = fields.iter().map(|field| &field.ty);
 
     Ok(quote! {
         doc! {
@@ -110,13 +110,15 @@ fn impl_bson_schema_regular_struct(fields: Punctuated<Field, Comma>) -> Result<T
 
 /// Returns an iterator over the potentially-`#magnet[rename(...)]`d
 /// fields of a regular struct with named fields.
-fn regular_struct_field_names(fields: Punctuated<Field, Comma>) -> Result<Vec<String>> {
-    let iter = fields.into_iter().map(|field| {
+fn regular_struct_field_names(fields: &Punctuated<Field, Comma>) -> Result<Vec<String>> {
+    let iter = fields.iter().map(|field| {
         let name = field.ident.as_ref().ok_or_else(
             || Error::new("no name for named field?!")
         )?;
 
-        let name = match magnet_meta_name_value(field.attrs, "rename")? {
+        let magnet_rename = magnet_meta_name_value(&field.attrs, "rename")?;
+        let serde_rename = serde_meta_name_value(&field.attrs, "rename")?;
+        let name = match magnet_rename.or(serde_rename) {
             Some(nv) => match nv.lit {
                 Lit::Str(string) => string.value(),
                 Lit::ByteStr(string) => String::from_utf8(string.value())?,
@@ -133,7 +135,7 @@ fn regular_struct_field_names(fields: Punctuated<Field, Comma>) -> Result<Vec<St
 
 /// Implements `BsonSchema` for a tuple `struct` with unnamed/numbered fields.
 /// TODO(H2CO3): implement me
-fn impl_bson_schema_tuple_struct(fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+fn impl_bson_schema_tuple_struct(_fields: Punctuated<Field, Comma>) -> Result<Tokens> {
     Err(Error::new("`#[derive(BsonSchema)]` for tuple `struct`s is not implemented"))
 }
 
@@ -149,12 +151,12 @@ fn impl_bson_schema_unit_struct() -> Result<Tokens> {
 
 /// Implements `BsonSchema` for an `enum`.
 /// TODO(H2CO3): implement me
-fn impl_bson_schema_enum(ast: DataEnum) -> Result<Tokens> {
+fn impl_bson_schema_enum(_attrs: Vec<Attribute>, _ast: DataEnum) -> Result<Tokens> {
     Err(Error::new("`#[derive(BsonSchema)]` for `enum`s is not implemented"))
 }
 
 /// Implements `BsonSchema` for a `union`.
-fn impl_bson_schema_union(_ast: DataUnion) -> Result<Tokens> {
+fn impl_bson_schema_union(_attrs: Vec<Attribute>, _ast: DataUnion) -> Result<Tokens> {
     Err(Error::new("`BsonSchema` can't be implemented for unions"))
 }
 
@@ -162,14 +164,14 @@ fn impl_bson_schema_union(_ast: DataUnion) -> Result<Tokens> {
 // General Helpers //
 /////////////////////
 
-/// Returns the inner, `...` part of the first `#[magnet(...)]` attribute
-/// with the specified name (like `#[magnet(name ( = "value")?)]`).
+/// Returns the inner, `...` part of the first `#[name(...)]` attribute
+/// with the specified name (like `#[magnet(key ( = "value")?)]`).
 /// TODO(H2CO3): check for duplicate arguments and bail out with an error
-fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
-    attrs.into_iter().filter_map(|attr| {
+fn meta(attrs: &[Attribute], name: &str, key: &str) -> Option<Meta> {
+    attrs.iter().filter_map(|attr| {
         let meta_list = match attr.interpret_meta()? {
             Meta::List(list) => {
-                if list.ident.as_ref() == "magnet" {
+                if list.ident.as_ref() == name {
                     list
                 } else {
                     return None;
@@ -190,7 +192,7 @@ fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
                 Meta::NameValue(ref name_value) => name_value.ident,
             };
 
-            if ident.as_ref() == name {
+            if ident.as_ref() == key {
                 Some(meta)
             } else {
                 None
@@ -201,14 +203,24 @@ fn magnet_meta(attrs: Vec<Attribute>, name: &str) -> Option<Meta> {
     .next()
 }
 
-/// Search for a `Magnet` attribute, provided that it's a name-value pair.
-fn magnet_meta_name_value(attrs: Vec<Attribute>, name: &str) -> Result<Option<MetaNameValue>> {
-    match magnet_meta(attrs, name) {
+/// Search for an attribute, provided that it's a name-value pair.
+fn meta_name_value(attrs: &[Attribute], name: &str, key: &str) -> Result<Option<MetaNameValue>> {
+    match meta(attrs, name, key) {
         Some(Meta::NameValue(name_value)) => Ok(Some(name_value)),
         Some(_) => {
-            let msg = format!("attribute must have form `#[magnet({} = \"...\")]`", name);
+            let msg = format!("attribute must have form `#[{}({} = \"...\")]`", name, key);
             Err(Error::new(msg))
         },
         None => Ok(None),
     }
+}
+
+/// Search for a `Magnet` attribute, provided that it's a name-value pair.
+fn magnet_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
+    meta_name_value(attrs, "magnet", key)
+}
+
+/// Search for a `Serde` attribute, provided that it's a name-value pair.
+fn serde_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
+    meta_name_value(attrs, "serde", key)
 }
