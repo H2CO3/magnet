@@ -36,6 +36,7 @@ extern crate quote;
 extern crate syn;
 extern crate proc_macro;
 
+mod case;
 mod error;
 
 use proc_macro::TokenStream;
@@ -74,6 +75,10 @@ fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
 
     Ok(generated.into())
 }
+
+/////////////
+// Structs //
+/////////////
 
 /// Implements `BsonSchema` for a `struct`.
 fn impl_bson_schema_struct(attrs: Vec<Attribute>, ast: DataStruct) -> Result<Tokens> {
@@ -149,11 +154,19 @@ fn impl_bson_schema_unit_struct() -> Result<Tokens> {
     })
 }
 
+///////////
+// Enums //
+///////////
+
 /// Implements `BsonSchema` for an `enum`.
 /// TODO(H2CO3): implement me
 fn impl_bson_schema_enum(_attrs: Vec<Attribute>, _ast: DataEnum) -> Result<Tokens> {
     Err(Error::new("`#[derive(BsonSchema)]` for `enum`s is not implemented"))
 }
+
+////////////
+// Unions //
+////////////
 
 /// Implements `BsonSchema` for a `union`.
 fn impl_bson_schema_union(_attrs: Vec<Attribute>, _ast: DataUnion) -> Result<Tokens> {
