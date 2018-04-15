@@ -40,9 +40,10 @@ mod case;
 mod error;
 
 use proc_macro::TokenStream;
-use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field, Attribute, Meta, NestedMeta, Lit, MetaNameValue };
+use syn::{ DeriveInput, Data, DataStruct, DataEnum, DataUnion, Fields, Field };
+use syn::{ Attribute, Meta, NestedMeta, MetaNameValue, Lit };
 use syn::token::Comma;
-use syn::punctuated::Punctuated;
+use syn::punctuated::{ Punctuated, Pair };
 use quote::Tokens;
 use case::RenameRule;
 use error::{ Error, Result };
@@ -144,19 +145,41 @@ fn regular_struct_field_names(attrs: &[Attribute], fields: &Punctuated<Field, Co
 }
 
 /// Implements `BsonSchema` for a tuple `struct` with unnamed/numbered fields.
-/// TODO(H2CO3): implement me
-fn impl_bson_schema_tuple_struct(_fields: Punctuated<Field, Comma>) -> Result<Tokens> {
-    Err(Error::new("`#[derive(BsonSchema)]` for tuple `struct`s is not implemented"))
+fn impl_bson_schema_tuple_struct(mut fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+    match fields.pop().map(Pair::into_value) {
+        None => impl_bson_schema_unit_struct(), // 0 fields, equivalent to `()`
+        Some(field) => match fields.len() {
+            0 => {
+                // 1 field, aka newtype - just delegate to the field's type
+                let ty = field.ty;
+                let tokens = quote! {
+                    <#ty as ::magnet_schema::BsonSchema>::bson_schema()
+                };
+                Ok(tokens)
+            },
+            _ => {
+                // more than 1 fields - treat it as if it was a tuple
+                fields.push(field);
+
+                let ty = fields.iter().map(|field| &field.ty);
+                let tokens = quote! {
+                    doc! {
+                        "type": "array",
+                        "items": [
+                            #(<#ty as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                        ],
+                        "additionalItems": false,
+                    }
+                };
+                Ok(tokens)
+            },
+        }
+    }
 }
 
 /// Implements `BsonSchema` for a unit `struct` with no fields.
 fn impl_bson_schema_unit_struct() -> Result<Tokens> {
-    Ok(quote! {
-        doc! {
-            "type": ["array", "null"],
-            "maxItems": 0,
-        }
-    })
+    Ok(quote!{ <() as ::magnet_schema::BsonSchema>::bson_schema() })
 }
 
 ///////////
