@@ -47,4 +47,4 @@ fn main() {
 }
 ```
 
-For milestones, please see the [documentation](https://docs.rs/magnet_schema).
+For milestones and custom `#[attributes]`, please see the [documentation](https://docs.rs/magnet_schema).
