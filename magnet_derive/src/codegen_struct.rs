@@ -1,0 +1,109 @@
+//! Code generation for `struct`s.
+
+use quote::Tokens;
+use syn::{ DataStruct, Attribute, Field, Fields };
+use syn::punctuated::{ Punctuated, Pair };
+use syn::token::Comma;
+use case::RenameRule;
+use error::{ Error, Result };
+use meta::*;
+
+/// Implements `BsonSchema` for a `struct`.
+pub fn impl_bson_schema_struct(attrs: Vec<Attribute>, ast: DataStruct) -> Result<Tokens> {
+    match ast.fields {
+        Fields::Named(fields) => {
+            impl_bson_schema_regular_struct(attrs, fields.named)
+        },
+        Fields::Unnamed(fields) => {
+            impl_bson_schema_tuple_struct(fields.unnamed)
+        },
+        Fields::Unit => {
+            impl_bson_schema_unit_struct()
+        },
+    }
+}
+
+/// Implements `BsonSchema` for a regular `struct` with named fields.
+fn impl_bson_schema_regular_struct(attrs: Vec<Attribute>, fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+    let properties = &regular_struct_field_names(&attrs, &fields)?;
+    let types = fields.iter().map(|field| &field.ty);
+
+    Ok(quote! {
+        doc! {
+            "type": "object",
+            "properties": {
+                #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+            },
+            "required": [ #(#properties,)* ],
+            "additionalProperties": false,
+        }
+    })
+}
+
+/// Returns an iterator over the potentially-`#magnet[rename(...)]`d
+/// fields of a regular struct with named fields.
+fn regular_struct_field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result<Vec<String>> {
+    let rename_all_str = serde_meta_name_value(attrs, "rename_all")?;
+    let rename_all: Option<RenameRule> = match rename_all_str {
+        Some(s) => Some(meta_value_as_str(&s)?.parse()?),
+        None => None,
+    };
+
+    let iter = fields.iter().map(|field| {
+        let name = field.ident.as_ref().ok_or_else(
+            || Error::new("no name for named field?!")
+        )?;
+
+        let magnet_rename = magnet_meta_name_value(&field.attrs, "rename")?;
+        let serde_rename = serde_meta_name_value(&field.attrs, "rename")?;
+        let name = match magnet_rename.or(serde_rename) {
+            Some(nv) => meta_value_as_str(&nv)?,
+            None => rename_all.map_or(
+                name.as_ref().into(),
+                |rule| rule.apply_to_field(name.as_ref()),
+            ),
+        };
+
+        Ok(name)
+    });
+
+    iter.collect()
+}
+
+/// Implements `BsonSchema` for a tuple `struct` with unnamed/numbered fields.
+fn impl_bson_schema_tuple_struct(mut fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+    match fields.pop().map(Pair::into_value) {
+        None => impl_bson_schema_unit_struct(), // 0 fields, equivalent to `()`
+        Some(field) => match fields.len() {
+            0 => {
+                // 1 field, aka newtype - just delegate to the field's type
+                let ty = field.ty;
+                let tokens = quote! {
+                    <#ty as ::magnet_schema::BsonSchema>::bson_schema()
+                };
+                Ok(tokens)
+            },
+            _ => {
+                // more than 1 fields - treat it as if it was a tuple
+                fields.push(field);
+
+                let ty = fields.iter().map(|field| &field.ty);
+                let tokens = quote! {
+                    doc! {
+                        "type": "array",
+                        "items": [
+                            #(<#ty as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                        ],
+                        "additionalItems": false,
+                    }
+                };
+                Ok(tokens)
+            },
+        }
+    }
+}
+
+/// Implements `BsonSchema` for a unit `struct` with no fields.
+fn impl_bson_schema_unit_struct() -> Result<Tokens> {
+    Ok(quote!{ <() as ::magnet_schema::BsonSchema>::bson_schema() })
+}
