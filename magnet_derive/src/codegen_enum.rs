@@ -50,32 +50,31 @@ fn variant_schema(
     };
 
     match *tagging {
-        SerdeEnumTag::Untagged => impl_bson_schema_fields(
-            &variant.attrs,
-            variant.fields,
-        ),
-        SerdeEnumTag::Adjacent { ref tag, ref content } => {
-            match variant.fields {
-                Fields::Unit => adjacently_tagged_unit_variant_schema(
-                    &variant_name,
-                    tag,
-                ),
-                fields => adjacently_tagged_other_variant_schema(
-                    &variant.attrs,
-                    &variant_name,
-                    tag,
-                    content,
-                    fields,
-                ),
-            }
+        SerdeEnumTag::Untagged => {
+            impl_bson_schema_fields(&variant.attrs, variant.fields)
+        }
+        SerdeEnumTag::Adjacent {
+            ref tag, ref content
+        } => match variant.fields {
+            Fields::Unit => adjacently_tagged_unit_variant_schema(
+                &variant_name,
+                tag,
+            ),
+            _ => adjacently_tagged_other_variant_schema(
+                &variant.attrs,
+                &variant_name,
+                tag,
+                content,
+                variant.fields,
+            ),
         },
         SerdeEnumTag::Internal(_) => unimplemented!(),
         SerdeEnumTag::External => match variant.fields {
             Fields::Unit => externally_tagged_unit_variant_schema(&variant_name),
-            fields => externally_tagged_other_variant_schema(
+            _ => externally_tagged_other_variant_schema(
                 &variant.attrs,
                 &variant_name,
-                fields,
+                variant.fields,
             ),
         },
     }
