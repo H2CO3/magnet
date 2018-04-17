@@ -54,6 +54,18 @@ fn meta_name_value(attrs: &[Attribute], name: &str, key: &str) -> Result<Option<
     }
 }
 
+/// Search for an attribute, provided that it's a single word.
+fn has_meta_word(attrs: &[Attribute], name: &str, key: &str) -> Result<bool> {
+    match meta(attrs, name, key) {
+        Some(Meta::Word(_)) => Ok(true),
+        Some(_) => {
+            let msg = format!("attribute must have form `#[{}({})]`", name, key);
+            Err(Error::new(msg))
+        },
+        None => Ok(false),
+    }
+}
+
 /// Search for a `Magnet` attribute, provided that it's a name-value pair.
 pub fn magnet_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
     meta_name_value(attrs, "magnet", key)
@@ -62,6 +74,11 @@ pub fn magnet_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<M
 /// Search for a `Serde` attribute, provided that it's a name-value pair.
 pub fn serde_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
     meta_name_value(attrs, "serde", key)
+}
+
+/// Search for a `Serde` attribute, provided that it's a single word.
+pub fn has_serde_meta_word(attrs: &[Attribute], key: &str) -> Result<bool> {
+    has_meta_word(attrs, "serde", key)
 }
 
 /// Extracts a string value from an attribute value.

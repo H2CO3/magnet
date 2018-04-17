@@ -36,6 +36,7 @@ extern crate quote;
 extern crate syn;
 extern crate proc_macro;
 
+mod tag;
 mod case;
 mod meta;
 mod error;
