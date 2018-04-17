@@ -329,9 +329,9 @@ macro_rules! impl_bson_schema_array {
             fn bson_schema() -> Document {
                 doc! {
                     "type": "array",
-                    "items": T::bson_schema(),
                     "minItems": $size,
                     "maxItems": $size,
+                    "items": T::bson_schema(),
                 }
             }
         }
@@ -365,8 +365,8 @@ macro_rules! impl_bson_schema_tuple {
             fn bson_schema() -> Document {
                 doc! {
                     "type": "array",
-                    "items": [$($ty::bson_schema()),*],
                     "additionalItems": false,
+                    "items": [$($ty::bson_schema()),*],
                 }
             }
         }

@@ -25,9 +25,7 @@ pub fn impl_bson_schema_enum(attrs: Vec<Attribute>, ast: DataEnum) -> Result<Tok
 
     let tokens = quote! {
         doc! {
-            "oneOf": [
-                #(#variants,)*
-            ]
+            "anyOf": [ #(#variants,)* ]
         }
     };
 
@@ -70,8 +68,8 @@ fn variant_schema(
                     fields,
                 ),
             }
-        }
-        SerdeEnumTag::Internal(_) => Err(Error::new("internally-tagged enums are unimplemented")),
+        },
+        SerdeEnumTag::Internal(_) => unimplemented!(),
         SerdeEnumTag::External => match variant.fields {
             Fields::Unit => externally_tagged_unit_variant_schema(&variant_name),
             fields => externally_tagged_other_variant_schema(
@@ -87,11 +85,11 @@ fn adjacently_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Resul
     let tokens = quote! {
         doc! {
             "type": "object",
+            "additionalProperties": false,
+            "required": [ #tag ],
             "properties": {
                 #tag: { "enum": [ #variant_name ] },
             },
-            "required": [ #tag ],
-            "additionalProperties": false,
         }
     };
     Ok(tokens)
@@ -108,12 +106,12 @@ fn adjacently_tagged_other_variant_schema(
     let tokens = quote! {
         doc! {
             "type": "object",
+            "additionalProperties": false,
+            "required": [ #tag, #content ],
             "properties": {
                 #tag: { "enum": [ #variant_name ] },
                 #content: #variant_schema,
             },
-            "required": [ #tag, #content ],
-            "additionalProperties": false,
         }
     };
     Ok(tokens)
@@ -122,7 +120,6 @@ fn adjacently_tagged_other_variant_schema(
 fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
     let tokens = quote! {
         doc! {
-            "type": "string",
             "enum": [ #variant_name ],
         }
     };
@@ -139,11 +136,11 @@ fn externally_tagged_other_variant_schema(
     let tokens = quote! {
         doc! {
             "type": "object",
+            "additionalProperties": false,
+            "required": [ #variant_name ],
             "properties": {
                 #variant_name: #variant_schema
             },
-            "required": [ #variant_name ],
-            "additionalProperties": false,
         }
     };
     Ok(tokens)

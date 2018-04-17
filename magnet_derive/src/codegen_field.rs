@@ -31,11 +31,11 @@ fn impl_bson_schema_named_fields(attrs: &[Attribute], fields: Punctuated<Field, 
     Ok(quote! {
         doc! {
             "type": "object",
+            "additionalProperties": false,
+            "required": [ #(#properties,)* ],
             "properties": {
                 #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
             },
-            "required": [ #(#properties,)* ],
-            "additionalProperties": false,
         }
     })
 }
@@ -92,10 +92,10 @@ fn impl_bson_schema_indexed_fields(mut fields: Punctuated<Field, Comma>) -> Resu
                 let tokens = quote! {
                     doc! {
                         "type": "array",
+                        "additionalItems": false,
                         "items": [
                             #(<#ty as ::magnet_schema::BsonSchema>::bson_schema(),)*
                         ],
-                        "additionalItems": false,
                     }
                 };
                 Ok(tokens)
