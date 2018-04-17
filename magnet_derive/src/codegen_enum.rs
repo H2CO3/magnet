@@ -68,7 +68,10 @@ fn variant_schema(
             }
         }
         SerdeEnumTag::Internal(_) => Err(Error::new("internally-tagged enums are unimplemented")),
-        SerdeEnumTag::External => Err(Error::new("externally-tagged enums are unimplemented")),
+        SerdeEnumTag::External => match variant.fields {
+            Fields::Unit => externally_tagged_unit_variant_schema(&variant_name),
+            fields => externally_tagged_other_variant_schema(&variant_name, fields),
+        },
     }
 }
 
@@ -101,6 +104,32 @@ fn adjacently_tagged_other_variant_schema(
                 #content: #variant_schema,
             },
             "required": [ #tag, #content ],
+            "additionalProperties": false,
+        }
+    };
+    Ok(tokens)
+}
+
+fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
+    let tokens = quote! {
+        doc! {
+            "type": "string",
+            "enum": [#variant_name],
+        }
+    };
+    Ok(tokens)
+}
+
+fn externally_tagged_other_variant_schema(variant_name: &str, fields: Fields) -> Result<Tokens> {
+    let variant_schema = impl_bson_schema_fields(&[], fields)?;
+
+    let tokens = quote! {
+        doc! {
+            "type": "object",
+            "properties": {
+                #variant_name: #variant_schema
+            },
+            "required": [#variant_name],
             "additionalProperties": false,
         }
     };
