@@ -40,6 +40,7 @@ mod tag;
 mod case;
 mod meta;
 mod error;
+mod codegen_field;
 mod codegen_struct;
 mod codegen_enum;
 mod codegen_union;
