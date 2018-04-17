@@ -114,7 +114,7 @@ fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
     let tokens = quote! {
         doc! {
             "type": "string",
-            "enum": [#variant_name],
+            "enum": [ #variant_name ],
         }
     };
     Ok(tokens)
@@ -129,7 +129,7 @@ fn externally_tagged_other_variant_schema(variant_name: &str, fields: Fields) ->
             "properties": {
                 #variant_name: #variant_schema
             },
-            "required": [#variant_name],
+            "required": [ #variant_name ],
             "additionalProperties": false,
         }
     };
