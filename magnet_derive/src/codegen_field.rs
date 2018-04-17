@@ -9,7 +9,7 @@ use error::{ Error, Result };
 use meta::*;
 
 /// Implements `BsonSchema` for a struct or variant with the given fields.
-pub fn impl_bson_schema_fields(attrs: Vec<Attribute>, fields: Fields) -> Result<Tokens> {
+pub fn impl_bson_schema_fields(attrs: &[Attribute], fields: Fields) -> Result<Tokens> {
     match fields {
         Fields::Named(fields) => {
             impl_bson_schema_named_fields(attrs, fields.named)
@@ -24,8 +24,8 @@ pub fn impl_bson_schema_fields(attrs: Vec<Attribute>, fields: Fields) -> Result<
 }
 
 /// Implements `BsonSchema` for a `struct` or variant with named fields.
-fn impl_bson_schema_named_fields(attrs: Vec<Attribute>, fields: Punctuated<Field, Comma>) -> Result<Tokens> {
-    let properties = &field_names(&attrs, &fields)?;
+fn impl_bson_schema_named_fields(attrs: &[Attribute], fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+    let properties = &field_names(attrs, &fields)?;
     let types = fields.iter().map(|field| &field.ty);
 
     Ok(quote! {

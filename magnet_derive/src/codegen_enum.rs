@@ -1,10 +1,11 @@
 //! Code generation for `enum`s.
 
 use quote::Tokens;
-use syn::{ Attribute, DataEnum, Variant };
+use syn::{ Attribute, DataEnum, Variant, Fields };
 use error::{ Error, Result };
 use case::RenameRule;
 use tag::SerdeEnumTag;
+use codegen_field::impl_bson_schema_fields;
 use meta::*;
 
 /// Implements `BsonSchema` for an `enum`.
@@ -50,5 +51,58 @@ fn variant_schema(
         ),
     };
 
-    Err(Error::new("unimplemented"))
+    match *tagging {
+        SerdeEnumTag::Untagged => impl_bson_schema_fields(&[], variant.fields),
+        SerdeEnumTag::Adjacent { ref tag, ref content } => {
+            match variant.fields {
+                Fields::Unit => adjacently_tagged_unit_variant_schema(
+                    &variant_name,
+                    tag,
+                ),
+                fields => adjacently_tagged_other_variant_schema(
+                    &variant_name,
+                    tag,
+                    content,
+                    fields,
+                ),
+            }
+        }
+        SerdeEnumTag::Internal(_) => Err(Error::new("internally-tagged enums are unimplemented")),
+        SerdeEnumTag::External => Err(Error::new("externally-tagged enums are unimplemented")),
+    }
+}
+
+fn adjacently_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Result<Tokens> {
+    let tokens = quote! {
+        doc! {
+            "type": "object",
+            "properties": {
+                #tag: { "enum": [ #variant_name ] },
+            },
+            "required": [ #tag ],
+            "additionalProperties": false,
+        }
+    };
+    Ok(tokens)
+}
+
+fn adjacently_tagged_other_variant_schema(
+    variant_name: &str,
+    tag: &str,
+    content: &str,
+    fields: Fields,
+) -> Result<Tokens> {
+    let variant_schema = impl_bson_schema_fields(&[], fields)?;
+    let tokens = quote! {
+        doc! {
+            "type": "object",
+            "properties": {
+                #tag: { "enum": [ #variant_name ] },
+                #content: #variant_schema,
+            },
+            "required": [ #tag, #content ],
+            "additionalProperties": false,
+        }
+    };
+    Ok(tokens)
 }
