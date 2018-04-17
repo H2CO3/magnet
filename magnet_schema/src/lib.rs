@@ -179,6 +179,9 @@ use std::sync::{ Arc, Mutex, RwLock };
 use std::collections::{ HashSet, HashMap, BTreeSet, BTreeMap };
 use bson::{ Bson, Document };
 
+#[doc(hidden)]
+pub mod support;
+
 /// Types which can be expressed/validated by a MongoDB-flavored JSON schema.
 pub trait BsonSchema {
     /// Returns a BSON document describing the MongoDB-flavored schema of this type.

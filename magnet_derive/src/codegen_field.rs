@@ -113,16 +113,30 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
 /// with unnamed (numbered/indexed) fields.
 fn impl_bson_schema_indexed_fields(
     mut fields: Punctuated<Field, Comma>,
-    _extra: Option<TagExtra>,
+    extra: Option<TagExtra>,
 ) -> Result<Tokens> {
+    if extra.is_some() && fields.len() != 1 {
+        return Err(Error::new("internal tagging not usable with tuple variant"))
+    }
+
     match fields.pop().map(Pair::into_value) {
         None => impl_bson_schema_unit_field(), // 0 fields, equivalent to `()`
         Some(field) => match fields.len() {
             0 => {
                 // 1 field, aka newtype - just delegate to the field's type
                 let ty = field.ty;
-                let tokens = quote! {
-                    <#ty as ::magnet_schema::BsonSchema>::bson_schema()
+                let tokens = if let Some(TagExtra { tag, variant }) = extra {
+                    quote! {
+                        ::magnet_schema::support::extend_schema_with_tag(
+                            <#ty as ::magnet_schema::BsonSchema>::bson_schema(),
+                            #tag,
+                            #variant,
+                        )
+                    }
+                } else {
+                    quote! {
+                        <#ty as ::magnet_schema::BsonSchema>::bson_schema()
+                    }
                 };
                 Ok(tokens)
             },
