@@ -68,7 +68,18 @@ fn variant_schema(
                 variant.fields,
             ),
         },
-        SerdeEnumTag::Internal(_) => unimplemented!(),
+        SerdeEnumTag::Internal(ref tag) => match variant.fields {
+            Fields::Unit => internally_tagged_unit_variant_schema(
+                &variant_name,
+                tag,
+            ),
+            _ => internally_tagged_other_variant_schema(
+                &variant.attrs,
+                &variant_name,
+                tag,
+                variant.fields,
+            ),
+        },
         SerdeEnumTag::External => match variant.fields {
             Fields::Unit => externally_tagged_unit_variant_schema(&variant_name),
             _ => externally_tagged_other_variant_schema(
@@ -80,6 +91,8 @@ fn variant_schema(
     }
 }
 
+/// Generates a schema for a unit variant
+/// if the containing enum is adjacently tagged.
 fn adjacently_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Result<Tokens> {
     let tokens = quote! {
         doc! {
@@ -94,6 +107,8 @@ fn adjacently_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Resul
     Ok(tokens)
 }
 
+/// Generates a schema for a non-unit (newtype, tuple, or struct) variant
+/// if the containing enum is adjacently tagged.
 fn adjacently_tagged_other_variant_schema(
     attrs: &[Attribute],
     variant_name: &str,
@@ -116,6 +131,27 @@ fn adjacently_tagged_other_variant_schema(
     Ok(tokens)
 }
 
+/// Generates a schema for a unit variant if the containing enum is
+/// internally tagged. Incidentally, the representation is exactly
+/// the same as that of the adjacently-tagged version.
+fn internally_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Result<Tokens> {
+    adjacently_tagged_unit_variant_schema(variant_name, tag)
+}
+
+/// Generates a schema for a non-unit (newtype or struct)
+/// variant if the containing enum is internally tagged.
+fn internally_tagged_other_variant_schema(
+    attrs: &[Attribute],
+    variant_name: &str,
+    tag: &str,
+    fields: Fields,
+) -> Result<Tokens> {
+    let _schema = impl_bson_schema_fields(attrs, fields)?;
+    unimplemented!()
+}
+
+/// Generates a schema for a unit variant
+/// if the containing enum is externally tagged.
 fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
     let tokens = quote! {
         doc! {
@@ -125,6 +161,8 @@ fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
     Ok(tokens)
 }
 
+/// Generates a schema for a non-unit (newtype, tuple, or struct)
+/// variant if the containing enum is externally tagged.
 fn externally_tagged_other_variant_schema(
     attrs: &[Attribute],
     variant_name: &str,
