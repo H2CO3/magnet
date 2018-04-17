@@ -52,7 +52,10 @@ fn variant_schema(
     };
 
     match *tagging {
-        SerdeEnumTag::Untagged => impl_bson_schema_fields(&[], variant.fields),
+        SerdeEnumTag::Untagged => impl_bson_schema_fields(
+            &variant.attrs,
+            variant.fields,
+        ),
         SerdeEnumTag::Adjacent { ref tag, ref content } => {
             match variant.fields {
                 Fields::Unit => adjacently_tagged_unit_variant_schema(
@@ -60,6 +63,7 @@ fn variant_schema(
                     tag,
                 ),
                 fields => adjacently_tagged_other_variant_schema(
+                    &variant.attrs,
                     &variant_name,
                     tag,
                     content,
@@ -70,7 +74,11 @@ fn variant_schema(
         SerdeEnumTag::Internal(_) => Err(Error::new("internally-tagged enums are unimplemented")),
         SerdeEnumTag::External => match variant.fields {
             Fields::Unit => externally_tagged_unit_variant_schema(&variant_name),
-            fields => externally_tagged_other_variant_schema(&variant_name, fields),
+            fields => externally_tagged_other_variant_schema(
+                &variant.attrs,
+                &variant_name,
+                fields,
+            ),
         },
     }
 }
@@ -90,12 +98,13 @@ fn adjacently_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Resul
 }
 
 fn adjacently_tagged_other_variant_schema(
+    attrs: &[Attribute],
     variant_name: &str,
     tag: &str,
     content: &str,
     fields: Fields,
 ) -> Result<Tokens> {
-    let variant_schema = impl_bson_schema_fields(&[], fields)?;
+    let variant_schema = impl_bson_schema_fields(attrs, fields)?;
     let tokens = quote! {
         doc! {
             "type": "object",
@@ -120,8 +129,12 @@ fn externally_tagged_unit_variant_schema(variant_name: &str) -> Result<Tokens> {
     Ok(tokens)
 }
 
-fn externally_tagged_other_variant_schema(variant_name: &str, fields: Fields) -> Result<Tokens> {
-    let variant_schema = impl_bson_schema_fields(&[], fields)?;
+fn externally_tagged_other_variant_schema(
+    attrs: &[Attribute],
+    variant_name: &str,
+    fields: Fields,
+) -> Result<Tokens> {
+    let variant_schema = impl_bson_schema_fields(attrs, fields)?;
 
     let tokens = quote! {
         doc! {
