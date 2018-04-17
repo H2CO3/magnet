@@ -2,10 +2,10 @@
 
 use quote::Tokens;
 use syn::{ Attribute, DataEnum, Variant, Fields };
-use error::{ Error, Result };
+use error::Result;
 use case::RenameRule;
 use tag::SerdeEnumTag;
-use codegen_field::impl_bson_schema_fields;
+use codegen_field::*;
 use meta::*;
 
 /// Implements `BsonSchema` for an `enum`.
@@ -142,12 +142,13 @@ fn internally_tagged_unit_variant_schema(variant_name: &str, tag: &str) -> Resul
 /// variant if the containing enum is internally tagged.
 fn internally_tagged_other_variant_schema(
     attrs: &[Attribute],
-    variant_name: &str,
+    variant: &str,
     tag: &str,
     fields: Fields,
 ) -> Result<Tokens> {
-    let _schema = impl_bson_schema_fields(attrs, fields)?;
-    unimplemented!()
+    let tag_extra = TagExtra { tag, variant };
+
+    impl_bson_schema_fields_extra(attrs, fields, tag_extra.into())
 }
 
 /// Generates a schema for a unit variant

@@ -8,36 +8,75 @@ use case::RenameRule;
 use error::{ Error, Result };
 use meta::*;
 
+/// Describes the extra field corresponding to an internally-tagged enum's tag.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TagExtra<'a> {
+    /// The name of the tag itself, which will be the key in the resulting map.
+    pub tag: &'a str,
+    /// The name of the enum variant, which will be the corresponding value.
+    pub variant: &'a str,
+}
+
 /// Implements `BsonSchema` for a struct or variant with the given fields.
 pub fn impl_bson_schema_fields(attrs: &[Attribute], fields: Fields) -> Result<Tokens> {
+    impl_bson_schema_fields_extra(attrs, fields, None)
+}
+
+/// Similar to `impl_bson_schema_fields`, but accepts an additional
+/// internal tag descriptor. Useful for implementing `enum`s.
+pub fn impl_bson_schema_fields_extra(
+    attrs: &[Attribute],
+    fields: Fields,
+    extra: Option<TagExtra>
+) -> Result<Tokens> {
     match fields {
         Fields::Named(fields) => {
-            impl_bson_schema_named_fields(attrs, fields.named)
+            impl_bson_schema_named_fields(attrs, fields.named, extra)
         },
         Fields::Unnamed(fields) => {
-            impl_bson_schema_indexed_fields(fields.unnamed)
+            impl_bson_schema_indexed_fields(fields.unnamed, extra)
         },
         Fields::Unit => {
+            assert!(extra.is_none(), "internally-tagged unit should've been handled");
             impl_bson_schema_unit_field()
         },
     }
 }
 
 /// Implements `BsonSchema` for a `struct` or variant with named fields.
-fn impl_bson_schema_named_fields(attrs: &[Attribute], fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+fn impl_bson_schema_named_fields(
+    attrs: &[Attribute],
+    fields: Punctuated<Field, Comma>,
+    extra: Option<TagExtra>,
+) -> Result<Tokens> {
     let properties = &field_names(attrs, &fields)?;
     let types = fields.iter().map(|field| &field.ty);
-
-    Ok(quote! {
-        doc! {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [ #(#properties,)* ],
-            "properties": {
-                #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
-            },
+    let tokens = if let Some(TagExtra { tag, variant }) = extra {
+        quote! {
+            doc! {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ #tag, #(#properties,)* ],
+                "properties": {
+                    #tag: { "enum": [ #variant ] },
+                    #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                },
+            }
         }
-    })
+    } else {
+        quote! {
+            doc! {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ #(#properties,)* ],
+                "properties": {
+                    #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                },
+            }
+        }
+    };
+
+    Ok(tokens)
 }
 
 /// Returns an iterator over the potentially-`#magnet[rename(...)]`d
@@ -72,7 +111,10 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
 
 /// Implements `BsonSchema` for a tuple `struct` or variant,
 /// with unnamed (numbered/indexed) fields.
-fn impl_bson_schema_indexed_fields(mut fields: Punctuated<Field, Comma>) -> Result<Tokens> {
+fn impl_bson_schema_indexed_fields(
+    mut fields: Punctuated<Field, Comma>,
+    _extra: Option<TagExtra>,
+) -> Result<Tokens> {
     match fields.pop().map(Pair::into_value) {
         None => impl_bson_schema_unit_field(), // 0 fields, equivalent to `()`
         Some(field) => match fields.len() {
