@@ -51,6 +51,9 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.1.3
+
+* Add support for `#[magnet(min_incl = "...", min_excl = "...", max_incl = "...", max_excl = "...")]` attributes on struct fields (named as well as newtype and tuple)
 
 ### v0.1.2
 
