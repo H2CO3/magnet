@@ -6,7 +6,7 @@
 //! [1]: https://docs.rs/magnet_schema
 
 #![crate_type = "proc-macro"]
-#![doc(html_root_url = "https://docs.rs/magnet_derive/0.1.2")]
+#![doc(html_root_url = "https://docs.rs/magnet_derive/0.1.3")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
         unsafe_code,
