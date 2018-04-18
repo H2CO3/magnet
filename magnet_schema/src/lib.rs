@@ -73,15 +73,19 @@
 //!
 //! * `[ ]` `#[derive(BsonSchema)]` on enums
 //!
-//!   * `[ ]` unit variants
+//!   * `[x]` unit variants
 //!
 //!   * `[ ]` newtype variants
 //!
-//!   * `[ ]` tuple variants
+//!     * `[x]` newtype variants around structs and maps
 //!
-//!   * `[ ]` struct variants
+//!     * `[ ]` newtype variants around inner, transitive `enum`s
 //!
-//!   * `[ ]` respect Serde tagging conventions: external/internal/adjacent
+//!   * `[x]` tuple variants
+//!
+//!   * `[x]` struct variants
+//!
+//!   * `[x]` respect Serde tagging conventions: external/internal/adjacent
 //!
 //! * `[x]` Respect more `#[serde(...)]` attributes, for example: `rename`,
 //!   `rename_all`
