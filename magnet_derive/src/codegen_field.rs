@@ -172,19 +172,17 @@ fn impl_bson_schema_indexed_fields(
         Some(field) => match fields.len() {
             0 => {
                 // 1 field, aka newtype - just delegate to the field's type
-                let ty = field.ty;
+                let def = field_def(&field)?;
                 let tokens = if let Some(TagExtra { tag, variant }) = extra {
                     quote! {
                         ::magnet_schema::support::extend_schema_with_tag(
-                            <#ty as ::magnet_schema::BsonSchema>::bson_schema(),
+                            #def,
                             #tag,
                             #variant,
                         )
                     }
                 } else {
-                    quote! {
-                        <#ty as ::magnet_schema::BsonSchema>::bson_schema()
-                    }
+                    def
                 };
                 Ok(tokens)
             },
@@ -192,17 +190,18 @@ fn impl_bson_schema_indexed_fields(
                 // more than 1 fields - treat it as if it was a tuple
                 fields.push(field);
 
-                let ty = fields.iter().map(|field| &field.ty);
-                let tokens = quote! {
+                let defs: Vec<_> = fields
+                    .iter()
+                    .map(field_def)
+                    .collect::<Result<_>>()?;
+
+                Ok(quote! {
                     doc! {
                         "type": "array",
                         "additionalItems": false,
-                        "items": [
-                            #(<#ty as ::magnet_schema::BsonSchema>::bson_schema(),)*
-                        ],
+                        "items": [ #(#defs,)* ],
                     }
-                };
-                Ok(tokens)
+                })
             },
         }
     }
