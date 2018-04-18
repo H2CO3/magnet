@@ -48,3 +48,22 @@ fn main() {
 ```
 
 For milestones and custom `#[attributes]`, please see the [documentation](https://docs.rs/magnet_schema).
+
+## Release Notes
+
+
+### v0.1.2
+
+* Add support for `enum`s, respecting Serde's tagging conventions (untagged/external/internal/adjacent), except newtype variants around other (inner) `enum`s
+* Refactoring, code quality improvements
+
+### v0.1.1
+
+* Add support for newtype structs and tuple structs
+* Respect `#[serde(rename_all = "...")]` and `#[serde(rename = "...")]` attributes
+* Add Serde-conform case conversion
+* Code formatting / organization and documentation improvements
+
+### v0.1.0
+
+* Initial release, only regular structs with named fields are supported
