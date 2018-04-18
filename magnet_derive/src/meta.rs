@@ -1,5 +1,6 @@
 //! Helper functions for retrieving and parsing meta attributes.
 
+use std::f64;
 use syn::{ Attribute, Meta, NestedMeta, MetaNameValue, Lit };
 use error::{ Error, Result };
 
@@ -88,5 +89,32 @@ pub fn meta_value_as_str(nv: &MetaNameValue) -> Result<String> {
         Lit::Str(ref string) => Ok(string.value()),
         Lit::ByteStr(ref string) => String::from_utf8(string.value()).map_err(Into::into),
         _ => Err(Error::new("attribute value must be a valid UTF-8 string")),
+    }
+}
+
+/// Extracts a floating-point value from an attribute value.
+/// Returns an `Err` if the literal is not a valid floating-point
+/// number or integer, and not a string that could be parsed as one.
+pub fn meta_value_as_num(nv: &MetaNameValue) -> Result<f64> {
+    match nv.lit {
+        Lit::Float(ref lit) => Ok(lit.value()),
+        Lit::Int(ref lit) => {
+            // Check if `f64` can represent this `u64`,
+            // so the conversion would be lossless.
+            let value = lit.value();
+            let max_exact = 1 << f64::MANTISSA_DIGITS;
+            if value < max_exact {
+                Ok(value as f64)
+            } else {
+                Err(Error::new("Integer can't be exactly represented by `f64`"))
+            }
+        },
+        Lit::Str(ref string) => string.value().parse().map_err(Into::into),
+        Lit::ByteStr(ref string) => {
+            String::from_utf8(string.value())
+                .map_err(Into::into)
+                .and_then(|s| s.parse().map_err(Into::into))
+        },
+        _ => Err(Error::new("attribute value must be a number")),
     }
 }

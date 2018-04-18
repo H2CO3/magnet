@@ -1,7 +1,7 @@
 //! Common part of codegen for `struct`s and `enum` variants.
 
 use quote::Tokens;
-use syn::{ Attribute, Field, Fields };
+use syn::{ Attribute, Field, Fields, MetaNameValue };
 use syn::punctuated::{ Punctuated, Pair };
 use syn::token::Comma;
 use case::RenameRule;
@@ -50,7 +50,7 @@ fn impl_bson_schema_named_fields(
     extra: Option<TagExtra>,
 ) -> Result<Tokens> {
     let properties = &field_names(attrs, &fields)?;
-    let types = fields.iter().map(|field| &field.ty);
+    let defs: Vec<_> = fields.iter().map(field_def).collect::<Result<_>>()?;
     let tokens = if let Some(TagExtra { tag, variant }) = extra {
         quote! {
             doc! {
@@ -59,7 +59,7 @@ fn impl_bson_schema_named_fields(
                 "required": [ #tag, #(#properties,)* ],
                 "properties": {
                     #tag: { "enum": [ #variant ] },
-                    #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                    #(#properties: #defs,)*
                 },
             }
         }
@@ -70,13 +70,61 @@ fn impl_bson_schema_named_fields(
                 "additionalProperties": false,
                 "required": [ #(#properties,)* ],
                 "properties": {
-                    #(#properties: <#types as ::magnet_schema::BsonSchema>::bson_schema(),)*
+                    #(#properties: #defs,)*
                 },
             }
         }
     };
 
     Ok(tokens)
+}
+
+/// Generates code for the value part of a key-value pair in a schema,
+/// corresponding to a single named struct field.
+/// TODO(H2CO3): check if field is numeric if bounded?
+fn field_def(field: &Field) -> Result<Tokens> {
+    let ty = &field.ty;
+    let min_incl = magnet_meta_name_value(&field.attrs, "min_incl")?;
+    let min_excl = magnet_meta_name_value(&field.attrs, "min_excl")?;
+    let max_incl = magnet_meta_name_value(&field.attrs, "max_incl")?;
+    let max_excl = magnet_meta_name_value(&field.attrs, "max_excl")?;
+    let lower = bounds_from_meta(min_incl, min_excl)?;
+    let upper = bounds_from_meta(max_incl, max_excl)?;
+
+    Ok(quote! {
+        ::magnet_schema::support::extend_schema_with_bounds(
+            <#ty as ::magnet_schema::BsonSchema>::bson_schema(),
+            ::magnet_schema::support::Bounds {
+                lower: #lower,
+                upper: #upper,
+            },
+        )
+    })
+}
+
+/// Parses meta attrs into quoted `Bound`s.
+fn bounds_from_meta(incl: Option<MetaNameValue>, excl: Option<MetaNameValue>) -> Result<Tokens> {
+    // Inclusive takes precedence over exclusive (form a union).
+    // TODO(H2CO3): this could be the other way around (when both
+    // inclusive and exclusive bounds specified, form an intersection)
+    // -- I'm not sure, which one makes more sense? Or maybe an error?
+    if let Some(nv) = incl {
+        let value = meta_value_as_num(&nv)?;
+
+        Ok(quote! {
+            ::magnet_schema::support::Bound::Inclusive(#value)
+        })
+    } else if let Some(nv) = excl {
+        let value = meta_value_as_num(&nv)?;
+
+        Ok(quote! {
+            ::magnet_schema::support::Bound::Exclusive(#value)
+        })
+    } else {
+        Ok(quote! {
+            ::magnet_schema::support::Bound::Unbounded
+        })
+    }
 }
 
 /// Returns an iterator over the potentially-`#magnet[rename(...)]`d
