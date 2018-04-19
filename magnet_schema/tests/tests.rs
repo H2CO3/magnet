@@ -343,3 +343,57 @@ fn struct_with_named_fields() {
         },
     });
 }
+
+#[test]
+fn untagged_enum() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(untagged, rename_all = "snake_case")]
+    enum Untagged {
+        Unit,
+        NewType(String),
+        TwoTuple(u8, i16),
+        Struct {
+            field: i32,
+        },
+    }
+
+    assert_doc_eq!(Untagged::bson_schema(), doc! {
+        "anyOf": [
+            {
+                "type": ["array", "null"],
+                "maxItems": 0_i64,
+            },
+            {
+                "type": "string",
+            },
+            {
+                "type": "array",
+                "additionalItems": false,
+                "items": [
+                    {
+                        "bsonType": ["int", "long"],
+                        "minimum": std::u8::MIN as i64,
+                        "maximum": std::u8::MAX as i64,
+                    },
+                    {
+                        "bsonType": ["int", "long"],
+                        "minimum": std::i16::MIN as i64,
+                        "maximum": std::i16::MAX as i64,
+                    },
+                ],
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "field" ],
+                "properties": {
+                    "field": {
+                        "bsonType": ["int", "long"],
+                        "minimum": std::i32::MIN as i64,
+                        "maximum": std::i32::MAX as i64,
+                    },
+                },
+            },
+        ]
+    });
+}
