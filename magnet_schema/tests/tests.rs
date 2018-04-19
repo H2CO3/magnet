@@ -473,3 +473,83 @@ fn externally_tagged_enum() {
         ]
     });
 }
+
+#[test]
+fn adjacently_tagged_enum() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(rename_all = "snake_case", tag = "variant", content = "value")]
+    enum AdjacentlyTagged {
+        Unit,
+        NewType(Option<String>),
+        TwoTuple(u8, i16),
+        Struct {
+            field: i32,
+        },
+    }
+
+    assert_doc_eq!(AdjacentlyTagged::bson_schema(), doc! {
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant"],
+                "properties": {
+                    "variant": { "enum": ["unit"] },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant", "value"],
+                "properties": {
+                    "variant": { "enum": ["new_type"] },
+                    "value": { "type": ["string", "null"] },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant", "value"],
+                "properties": {
+                    "variant": { "enum": ["two_tuple"] },
+                    "value": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                            {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::u8::MIN as i64,
+                                "maximum": std::u8::MAX as i64,
+                            },
+                            {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::i16::MIN as i64,
+                                "maximum": std::i16::MAX as i64,
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant", "value"],
+                "properties": {
+                    "variant": { "enum": ["struct"] },
+                    "value": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["field"],
+                        "properties": {
+                            "field": {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::i32::MIN as i64,
+                                "maximum": std::i32::MAX as i64,
+                            },
+                        },
+                    },
+                },
+            },
+        ]
+    });
+}
