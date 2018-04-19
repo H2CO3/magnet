@@ -333,11 +333,12 @@ impl<T> BsonSchema for [T] where T: BsonSchema {
 macro_rules! impl_bson_schema_array {
     ($($size:expr,)*) => {$(
         impl<T> BsonSchema for [T; $size] where T: BsonSchema {
+            #[allow(trivial_numeric_casts)]
             fn bson_schema() -> Document {
                 doc! {
                     "type": "array",
-                    "minItems": $size,
-                    "maxItems": $size,
+                    "minItems": $size as i64,
+                    "maxItems": $size as i64,
                     "items": T::bson_schema(),
                 }
             }
@@ -361,7 +362,7 @@ impl BsonSchema for () {
     fn bson_schema() -> Document {
         doc! {
             "type": ["array", "null"],
-            "maxItems": 0,
+            "maxItems": 0_i64,
         }
     }
 }
@@ -445,11 +446,13 @@ impl<T> BsonSchema for Vec<T> where T: BsonSchema {
 impl<T> BsonSchema for Option<T> where T: BsonSchema {
     fn bson_schema() -> Document {
         let mut doc = T::bson_schema();
-        let key = "type";
         let null_bson_str = Bson::from("null");
-        let old_type_spec = match doc.remove(key) {
-            Some(spec) => spec,
-            None => return doc, // type wasn't constrained; nothing to do
+        let (type_key, old_type_spec) = match doc.remove("type") {
+            Some(spec) => ("type", spec),
+            None => match doc.remove("bsonType") {
+                Some(spec) => ("bsonType", spec),
+                None => return doc, // type wasn't constrained; nothing to do
+            }
         };
         let new_type_spec = match old_type_spec {
             Bson::String(_) => vec![
@@ -464,11 +467,11 @@ impl<T> BsonSchema for Option<T> where T: BsonSchema {
 
                 array
             },
-            _ => panic!("invalid schema: `type` isn't a string or array: {:?}",
-                        old_type_spec.element_type()),
+            _ => panic!("invalid schema: `{}` isn't a string or array: {:?}",
+                        type_key, old_type_spec.element_type()),
         };
 
-        doc.insert(key, new_type_spec);
+        doc.insert(type_key, new_type_spec);
         doc
     }
 }

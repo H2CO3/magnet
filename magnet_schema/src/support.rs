@@ -87,6 +87,9 @@ pub fn extend_schema_with_tag(schema: Document, tag: &str, variant: &str) -> Doc
 }
 
 /// Check if a schema describes a struct: an object with a fixed set of keys.
+/// Note: we could check for `"type"` being an array containing `"object"`
+/// as well, in case it's an `Option`, but internally-tagged newtype variants
+/// around `Option` aren't supported by Serde anyway.
 fn schema_is_struct(doc: &Document) -> bool {
     doc.get_str("type") == Ok("object")
     &&
@@ -94,6 +97,9 @@ fn schema_is_struct(doc: &Document) -> bool {
 }
 
 /// Check if a schema holds a dynamic set of keys.
+/// Note: we could check for `"type"` being an array containing `"object"`
+/// as well, in case it's an `Option`, but internally-tagged newtype variants
+/// around `Option` aren't supported by Serde anyway.
 fn schema_is_map(doc: &Document) -> bool {
     doc.get_str("type") == Ok("object")
     &&

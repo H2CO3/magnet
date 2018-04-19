@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate bson;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate magnet_derive;
 extern crate magnet_schema;
@@ -30,10 +33,26 @@ impl PartialEq for UnorderedDoc {
             };
 
             match (value_lhs, value_rhs) {
-                (&Bson::Document(ref doc_lhs), &Bson::Document(ref doc_rhs)) => {
+                (&Bson::Document(ref doc_lhs),
+                 &Bson::Document(ref doc_rhs)) => {
                     let unord_lhs = UnorderedDoc(doc_lhs.clone());
                     let unord_rhs = UnorderedDoc(doc_rhs.clone());
                     unord_lhs == unord_rhs
+                },
+                (&Bson::Array(ref arr_lhs), &Bson::Array(ref arr_rhs)) => {
+                    if arr_lhs.len() != arr_rhs.len() {
+                        return false;
+                    }
+
+                    arr_lhs.iter().zip(arr_rhs).all(|args| match args {
+                        (&Bson::Document(ref doc_lhs),
+                         &Bson::Document(ref doc_rhs)) => {
+                            let unord_lhs = UnorderedDoc(doc_lhs.clone());
+                            let unord_rhs = UnorderedDoc(doc_rhs.clone());
+                            unord_lhs == unord_rhs
+                        },
+                        _ => args.0 == args.1,
+                    })
                 },
                 _ => value_lhs == value_rhs,
             }
