@@ -97,23 +97,17 @@ impl<'a, 'b> io::Write for FmtIoWriter<'a, 'b> {
     }
 }
 
-macro_rules! unord_doc {
-    ($($tokens:tt)*) => {
-        UnorderedDoc(doc!{ $($tokens)* })
-    }
-}
-
 macro_rules! assert_doc_eq {
     ($lhs:expr, $rhs:expr) => ({
         let lhs_str = stringify!($lhs);
         let rhs_str = stringify!($rhs);
 
-        let lhs = &$lhs;
-        let rhs = &$rhs;
+        let lhs = UnorderedDoc($lhs.clone());
+        let rhs = UnorderedDoc($rhs.clone());
 
         assert!(lhs == rhs,
-                "{} != {}!!! Values:\n{:#}\n-- VS. --\n{:#}",
-                lhs_str, rhs_str, lhs, rhs);
+                "Line: {}, {} != {}! Values:\n{:#}\n-- VS. --\n{:#}",
+                line!(), lhs_str, rhs_str, lhs, rhs);
     })
 }
 
@@ -122,8 +116,8 @@ macro_rules! assert_doc_ne {
         let lhs_str = stringify!($lhs);
         let rhs_str = stringify!($rhs);
 
-        let lhs = &$lhs;
-        let rhs = &$rhs;
+        let lhs = UnorderedDoc($lhs.clone());
+        let rhs = UnorderedDoc($rhs.clone());
 
         assert!(lhs != rhs,
                 "Line {}: {} == {}! Values:\n{:#}\n-- VS. --\n{:#}",
@@ -133,7 +127,7 @@ macro_rules! assert_doc_ne {
 
 #[test]
 fn unordered_doc_equality() {
-    let d1 = unord_doc! {
+    let d1 = doc! {
         "foo": "bar",
         "qux": 42,
         "key": [
@@ -152,7 +146,7 @@ fn unordered_doc_equality() {
         },
     };
 
-    let d2 = unord_doc! {
+    let d2 = doc! {
         "key": [
             {
                 "inner_2": 1337,
@@ -171,7 +165,7 @@ fn unordered_doc_equality() {
         },
     };
 
-    let d3 = unord_doc! {
+    let d3 = doc! {
         "key": [
             {
                 "inner_3": "value",
@@ -208,13 +202,13 @@ fn unit_struct() {
     #[derive(BsonSchema)]
     struct SndUnit();
 
-    let unit_schema = unord_doc! {
+    let unit_schema = doc! {
         "type": ["array", "null"],
         "maxItems": 0_i64,
     };
 
-    let fst_schema = UnorderedDoc(FstUnit::bson_schema());
-    let snd_schema = UnorderedDoc(SndUnit::bson_schema());
+    let fst_schema = FstUnit::bson_schema();
+    let snd_schema = SndUnit::bson_schema();
 
     assert_doc_eq!(fst_schema, snd_schema);
     assert_doc_eq!(snd_schema, fst_schema);
@@ -234,12 +228,9 @@ fn newtype_struct() {
         f32
     );
 
-    assert_doc_eq!(
-        UnorderedDoc(FloatingPoint::bson_schema()),
-        UnorderedDoc(f64::bson_schema())
-    );
+    assert_doc_eq!(FloatingPoint::bson_schema(), f64::bson_schema());
 
-    assert_doc_eq!(UnorderedDoc(Angle::bson_schema()), unord_doc! {
+    assert_doc_eq!(Angle::bson_schema(), doc! {
         "type": "number",
         "minimum": -180.0,
         "exclusiveMinimum": false,
@@ -256,7 +247,7 @@ fn tuple_struct() {
     #[derive(BsonSchema)]
     struct IntRange(Option<u32>, Option<u32>);
 
-    assert_doc_eq!(UnorderedDoc(Complex::bson_schema()), unord_doc! {
+    assert_doc_eq!(Complex::bson_schema(), doc! {
         "type": "array",
         "additionalItems": false,
         "items": [
@@ -265,7 +256,7 @@ fn tuple_struct() {
         ],
     });
 
-    assert_doc_eq!(UnorderedDoc(IntRange::bson_schema()), unord_doc! {
+    assert_doc_eq!(IntRange::bson_schema(), doc! {
         "type": "array",
         "additionalItems": false,
         "items": [
@@ -304,7 +295,7 @@ fn struct_with_named_fields() {
         provider_name: String,
     }
 
-    assert_doc_eq!(UnorderedDoc(Contact::bson_schema()), unord_doc! {
+    assert_doc_eq!(Contact::bson_schema(), doc! {
         "type": "object",
         "additionalProperties": false,
         "required": [
