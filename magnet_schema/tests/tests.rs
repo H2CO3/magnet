@@ -553,3 +553,69 @@ fn adjacently_tagged_enum() {
         ]
     });
 }
+
+#[test]
+fn internally_tagged_enum() {
+    use std::collections::HashMap;
+
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(rename_all = "snake_case", tag = "variant")]
+    enum AdjacentlyTagged {
+        Unit,
+        NewTypeOne(NewType),
+        NewTypeTwo(HashMap<String, bool>),
+        Struct {
+            field: i32,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    struct NewType {
+        name: String,
+    }
+
+    assert_doc_eq!(AdjacentlyTagged::bson_schema(), doc! {
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant"],
+                "properties": {
+                    "variant": { "enum": ["unit"] },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "variant"],
+                "properties": {
+                    "variant": { "enum": [ "new_type_one" ] },
+                    "name": { "type": "string" },
+                },
+            },
+            {
+                "type": "object",
+                "required": ["variant"],
+                "properties": {
+                    "variant": { "enum": [ "new_type_two" ] },
+                },
+                "additionalProperties": {
+                    "type": "boolean",
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant", "field"],
+                "properties": {
+                    "variant": { "enum": [ "struct" ] },
+                    "field": {
+                        "bsonType": ["int", "long"],
+                        "minimum": std::i32::MIN as i64,
+                        "maximum": std::i32::MAX as i64,
+                    },
+                },
+            },
+        ]
+    });
+}
