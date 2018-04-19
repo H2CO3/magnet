@@ -560,7 +560,7 @@ fn internally_tagged_enum() {
 
     #[derive(Serialize, Deserialize, BsonSchema)]
     #[serde(rename_all = "snake_case", tag = "variant")]
-    enum AdjacentlyTagged {
+    enum InternallyTagged {
         Unit,
         NewTypeOne(NewType),
         NewTypeTwo(HashMap<String, bool>),
@@ -574,7 +574,7 @@ fn internally_tagged_enum() {
         name: String,
     }
 
-    assert_doc_eq!(AdjacentlyTagged::bson_schema(), doc! {
+    assert_doc_eq!(InternallyTagged::bson_schema(), doc! {
         "anyOf": [
             {
                 "type": "object",
