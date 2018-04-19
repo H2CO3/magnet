@@ -1,3 +1,5 @@
+#![recursion_limit = "128"]
+
 #[macro_use]
 extern crate bson;
 extern crate serde;
@@ -347,10 +349,10 @@ fn struct_with_named_fields() {
 #[test]
 fn untagged_enum() {
     #[derive(Serialize, Deserialize, BsonSchema)]
-    #[serde(untagged, rename_all = "snake_case")]
+    #[serde(untagged)]
     enum Untagged {
         Unit,
-        NewType(String),
+        NewType(Option<String>),
         TwoTuple(u8, i16),
         Struct {
             field: i32,
@@ -364,7 +366,7 @@ fn untagged_enum() {
                 "maxItems": 0_i64,
             },
             {
-                "type": "string",
+                "type": ["string", "null"],
             },
             {
                 "type": "array",
@@ -391,6 +393,80 @@ fn untagged_enum() {
                         "bsonType": ["int", "long"],
                         "minimum": std::i32::MIN as i64,
                         "maximum": std::i32::MAX as i64,
+                    },
+                },
+            },
+        ]
+    });
+}
+
+#[test]
+fn externally_tagged_enum() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(rename_all = "snake_case")]
+    enum ExternallyTagged {
+        Unit,
+        NewType(Option<String>),
+        TwoTuple(u8, i16),
+        Struct {
+            field: i32,
+        },
+    }
+
+    assert_doc_eq!(ExternallyTagged::bson_schema(), doc! {
+        "anyOf": [
+            {
+                "enum": ["unit"],
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "new_type" ],
+                "properties": {
+                    "new_type": {
+                        "type": ["string", "null"],
+                    },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["two_tuple"],
+                "properties": {
+                    "two_tuple": {
+                        "type": "array",
+                        "additionalItems": false,
+                        "items": [
+                            {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::u8::MIN as i64,
+                                "maximum": std::u8::MAX as i64,
+                            },
+                            {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::i16::MIN as i64,
+                                "maximum": std::i16::MAX as i64,
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["struct"],
+                "properties": {
+                    "struct": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["field"],
+                        "properties": {
+                            "field": {
+                                "bsonType": ["int", "long"],
+                                "minimum": std::i32::MIN as i64,
+                                "maximum": std::i32::MAX as i64,
+                            },
+                        },
                     },
                 },
             },
