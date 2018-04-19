@@ -1,4 +1,5 @@
 #![recursion_limit = "128"]
+#![cfg_attr(feature = "cargo-clippy", allow(cast_lossless))]
 
 #[macro_use]
 extern crate bson;
@@ -281,6 +282,7 @@ fn struct_with_named_fields() {
     use std::collections::BTreeMap;
 
     #[derive(BsonSchema)]
+    #[allow(dead_code)]
     struct Contact {
         names: Vec<String>,
         address_lines: [String; 3],
