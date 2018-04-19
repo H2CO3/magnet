@@ -93,13 +93,13 @@
 //! * `[ ]` Respect more `#[serde(...)]` attributes, for example: `default`,
 //!   `skip`, `skip_serializing`, `skip_deserializing`
 //!
-//! * `[ ]` Handle generic types in proc-macro derive
+//! * `[x]` Handle generic types in proc-macro derive
 //!
 //! * `[ ]` Standard (non-MongoDB-specific) JSON schema support (approach?)
 //!
-//! * `[ ]` **UNIT TESTS!!!**
+//! * `[x]` unit tests
 //!
-//! * `[ ]` **DOCUMENTATION FOR ATTRIBUTES!!!**
+//! * `[x]` documentation for attributes
 //!
 //! * `[ ]` `impl BsonSchema` for more esoteric primitives/standard types
 //!   such as specialization of `[u8]`/`Vec<u8>` as binary, adding a

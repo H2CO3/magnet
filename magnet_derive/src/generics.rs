@@ -70,6 +70,7 @@ fn bson_schema_type_bounds() -> Punctuated<TypeParamBound, Add> {
     vec![bound].into_iter().collect()
 }
 
+/// Returns a predicate for a `where` clause iff the generic param is a type.
 fn where_predicate(param: &GenericParam) -> Option<WherePredicate> {
     let type_param = match *param {
         GenericParam::Type(ref ty) => ty,

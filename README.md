@@ -51,6 +51,10 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.2.0
+
+* Support for generic types
+
 ### v0.1.4
 
 * Unit tests and a test suite have been added.
