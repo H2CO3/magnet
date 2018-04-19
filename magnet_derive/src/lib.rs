@@ -71,7 +71,6 @@ fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
         Data::Union(u) => impl_bson_schema_union(parsed_ast.attrs, u)?,
     };
     let generated = quote! {
-        #[automatically_derived]
         impl ::magnet_schema::BsonSchema for #type_name {
             fn bson_schema() -> ::bson::Document {
                 #impl_ast
