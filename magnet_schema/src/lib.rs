@@ -175,6 +175,9 @@ extern crate url;
 extern crate uuid;
 
 use std::{ u8, u16, u32, u64, usize, i8, i16, i32, i64, isize };
+use std::ffi::{ OsStr, OsString };
+use std::path::{ Path, PathBuf };
+use std::fmt::Display;
 use std::hash::BuildHasher;
 use std::borrow::Cow;
 use std::rc::Rc;
@@ -298,10 +301,10 @@ macro_rules! impl_bson_schema_string {
 impl_bson_schema_string! {
     str,
     String,
-    std::ffi::OsStr,
-    std::ffi::OsString,
-    std::path::Path,
-    std::path::PathBuf,
+    OsStr,
+    OsString,
+    Path,
+    PathBuf,
 }
 
 ///////////////////////////////
@@ -500,7 +503,7 @@ impl<T> BsonSchema for BTreeSet<T> where T: BsonSchema {
 }
 
 impl<K, V, H> BsonSchema for HashMap<K, V, H>
-    where K: AsRef<str>,
+    where K: Display,
           V: BsonSchema,
           H: BuildHasher
 {
@@ -513,7 +516,7 @@ impl<K, V, H> BsonSchema for HashMap<K, V, H>
 }
 
 impl<K, V> BsonSchema for BTreeMap<K, V>
-    where K: AsRef<str>,
+    where K: Display,
           V: BsonSchema
 {
     fn bson_schema() -> Document {
