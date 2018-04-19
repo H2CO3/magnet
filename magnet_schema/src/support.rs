@@ -140,8 +140,8 @@ fn extend_map_schema_with_tag(mut schema: Document, tag: &str, variant: &str) ->
 
 /// Extends an `enum`'s schema so that it describes an internally-tagged variant.
 fn extend_enum_schema_with_tag(_schema: Document, _tag: &str, _variant: &str) -> Document {
-    // TODO(H2CO3): recursively and transitively flatten `anyOf` / `oneOf`
+    // TODO(H2CO3): recursively and transitively walk `anyOf` / `oneOf`
     // structure, until the leaves (struct or newtype-around-struct) are reached
-    // or an error occurs (a not struct or newtype-around-struct type is found).
+    // or an error occurs (a non struct or newtype-around-struct type is found).
     unimplemented!("internally-tagged newtype variants around enums are not yet supported")
 }
