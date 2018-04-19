@@ -619,3 +619,65 @@ fn internally_tagged_enum() {
         ]
     });
 }
+
+#[test]
+#[should_panic]
+fn malformed_internally_tagged_enum_1() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(tag = "variant")]
+    enum Foo {
+        Bar(Lol),
+    }
+
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    struct Lol;
+
+    Foo::bson_schema();
+}
+
+#[test]
+#[should_panic]
+fn malformed_internally_tagged_enum_2() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(tag = "variant")]
+    enum Foo {
+        Bar(u32),
+    }
+
+    Foo::bson_schema();
+}
+
+#[test]
+#[should_panic]
+fn malformed_internally_tagged_enum_3() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(tag = "variant")]
+    enum Foo {
+        Bar(Option<S>),
+    }
+
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    struct S {
+        f: bool,
+    }
+
+    Foo::bson_schema();
+}
+
+#[test]
+#[should_panic]
+fn malformed_internally_tagged_enum_4() {
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    #[serde(tag = "variant")]
+    enum Foo {
+        Bar(E),
+    }
+
+    #[derive(Serialize, Deserialize, BsonSchema)]
+    enum E {
+        Qux,
+        Moo,
+    }
+
+    Foo::bson_schema();
+}
