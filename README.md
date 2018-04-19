@@ -51,6 +51,13 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.1.4
+
+* Unit tests and a test suite have been added.
+* Bug fix: `Option::bson_schema()` didn't handle the `bsonType` field, so `Option<integer>` wasn't allowed to be `null`. This has been corrected.
+* Bug fix: every generated schema now uses `Bson::I64` for representing array lengths / collection counts
+* Enhancement: `impl BsonSchema for { HashMap, BTreeMap }` now has a less stringent trait bound on the key. It is now `Display` instead of `AsRef<str>`.
+
 ### v0.1.3
 
 * Add support for `#[magnet(min_incl = "...", min_excl = "...", max_incl = "...", max_excl = "...")]` attributes on struct fields (named as well as newtype and tuple)
