@@ -40,6 +40,7 @@ mod tag;
 mod case;
 mod meta;
 mod error;
+mod generics;
 mod codegen_field;
 mod codegen_struct;
 mod codegen_enum;
@@ -48,6 +49,7 @@ mod codegen_union;
 use proc_macro::TokenStream;
 use syn::{ DeriveInput, Data };
 use error::Result;
+use generics::GenericsExt;
 use codegen_struct::*;
 use codegen_enum::*;
 use codegen_union::*;
@@ -61,17 +63,17 @@ pub fn derive_bson_schema(input: TokenStream) -> TokenStream {
 
 /// Implements `BsonSchema` for a given type based on its
 /// recursively contained types in fields or variants.
-/// TODO(H2CO3): handle generics
 fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
     let parsed_ast: DeriveInput = syn::parse(input)?;
-    let type_name = parsed_ast.ident;
+    let ty = parsed_ast.ident;
     let impl_ast = match parsed_ast.data {
         Data::Struct(s) => impl_bson_schema_struct(parsed_ast.attrs, s)?,
         Data::Enum(e) => impl_bson_schema_enum(parsed_ast.attrs, e)?,
         Data::Union(u) => impl_bson_schema_union(parsed_ast.attrs, u)?,
     };
+    let (impbounds, tyargs, whbounds) = parsed_ast.generics.with_bson_schema();
     let generated = quote! {
-        impl ::magnet_schema::BsonSchema for #type_name {
+        impl<#impbounds> ::magnet_schema::BsonSchema for #ty<#tyargs> #whbounds {
             fn bson_schema() -> ::bson::Document {
                 #impl_ast
             }

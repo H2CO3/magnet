@@ -683,3 +683,87 @@ fn malformed_internally_tagged_enum_4() {
 
     Foo::bson_schema();
 }
+
+#[test]
+fn generic_struct() {
+    #[allow(dead_code)]
+    #[derive(BsonSchema)]
+    struct Generic<'a, 'b, T: 'a, U> {
+        ts: &'a [T],
+        title: &'b str,
+        other: U,
+    }
+
+    assert_doc_eq!(Generic::<Option<f32>, Box<u16>>::bson_schema(), doc! {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+            "ts",
+            "title",
+            "other",
+        ],
+        "properties": {
+            "ts": {
+                "type": "array",
+                "items": {
+                    "type": ["number", "null"],
+                },
+            },
+            "title": { "type": "string" },
+            "other": {
+                "bsonType": ["int", "long"],
+                "minimum": std::u16::MIN as i64,
+                "maximum": std::u16::MAX as i64,
+            },
+        },
+    });
+}
+
+#[test]
+fn generic_enum() {
+    use std::collections::{ HashMap, BTreeMap };
+
+    #[allow(dead_code)]
+    #[derive(BsonSchema, Serialize)]
+    #[serde(tag = "kind")]
+    enum EitherRefMut<'a, L, R> where L: 'a, R: 'a {
+        Left(&'a mut L),
+        Right(&'a mut R),
+    }
+
+    type E<'life> = EitherRefMut<
+        'life,
+        HashMap<String, ()>,
+        BTreeMap<&'life str, bool>
+    >;
+
+    assert_doc_eq!(E::bson_schema(), doc! {
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": {
+                    "type": ["array", "null"],
+                    "maxItems": 0_i64,
+                },
+                "required": ["kind"],
+                "properties": {
+                    "kind": {
+                        "enum": ["Left"],
+                    }
+                },
+            },
+            {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "boolean",
+                },
+                "required": ["kind"],
+                "properties": {
+                    "kind": {
+                        "enum": ["Right"],
+                    }
+                },
+            },
+        ]
+    });
+}
