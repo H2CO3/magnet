@@ -143,7 +143,7 @@
 //!     unlisted additional object fields are allowed provided that they
 //!     conform to the schema of the specified type.
 
-#![doc(html_root_url = "https://docs.rs/magnet_schema/0.1.4")]
+#![doc(html_root_url = "https://docs.rs/magnet_schema/0.2.0")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
         unsafe_code,
