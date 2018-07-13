@@ -2,7 +2,7 @@
 
 use quote::Tokens;
 use syn::{ Attribute, DataEnum, Variant, Fields };
-use error::Result;
+use error::{ Error, Result };
 use case::RenameRule;
 use tag::SerdeEnumTag;
 use codegen_field::*;
@@ -39,9 +39,12 @@ fn variant_schema(
     tagging: &SerdeEnumTag,
 ) -> Result<Tokens> {
     // check for renaming directive attribute
-    let magnet_rename = magnet_meta_name_value(&variant.attrs, "rename")?;
-    let serde_rename = serde_meta_name_value(&variant.attrs, "rename")?;
-    let variant_name = match magnet_rename.or(serde_rename) {
+    if magnet_meta_name_value(&variant.attrs, "rename")?.is_some() {
+        return Err(Error::new("`#[magnet(rename = \"...\")]` no longer exists"))
+    }
+
+    let rename = serde_meta_name_value(&variant.attrs, "rename")?;
+    let variant_name = match rename {
         Some(nv) => meta_value_as_str(&nv)?,
         None => rename_all.map_or(
             variant.ident.as_ref().into(),

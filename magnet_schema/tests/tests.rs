@@ -771,3 +771,54 @@ fn generic_enum() {
         ]
     });
 }
+
+#[test]
+fn serde_rename_struct_field() {
+    #[derive(Serialize, BsonSchema)]
+    struct Foo {
+        #[serde(rename = "newname")]
+        field: i32,
+    }
+
+    assert_doc_eq!(Foo::bson_schema(), doc!{
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["newname"],
+        "properties": {
+            "newname": {
+                "bsonType": ["int", "long"],
+                "minimum": std::i32::MIN as i64,
+                "maximum": std::i32::MAX as i64,
+            },
+        },
+    });
+}
+
+#[test]
+fn serde_rename_enum_variant() {
+    #[allow(dead_code)]
+    #[derive(Serialize, BsonSchema)]
+    #[serde(tag = "variant", content = "value")]
+    enum Quux {
+        #[serde(rename = "LongName")]
+        Variant(String),
+    }
+
+    assert_doc_eq!(Quux::bson_schema(), doc!{
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variant", "value"],
+                "properties": {
+                    "variant": {
+                        "enum": ["LongName"],
+                    },
+                    "value": {
+                        "type": "string",
+                    },
+                },
+            },
+        ],
+    });
+}

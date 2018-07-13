@@ -141,9 +141,12 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
             || Error::new("no name for named field?!")
         )?;
 
-        let magnet_rename = magnet_meta_name_value(&field.attrs, "rename")?;
-        let serde_rename = serde_meta_name_value(&field.attrs, "rename")?;
-        let name = match magnet_rename.or(serde_rename) {
+        if magnet_meta_name_value(&field.attrs, "rename")?.is_some() {
+            return Err(Error::new("`#[magnet(rename = \"...\")]` no longer exists"))
+        }
+
+        let rename = serde_meta_name_value(&field.attrs, "rename")?;
+        let name = match rename {
             Some(nv) => meta_value_as_str(&nv)?,
             None => rename_all.map_or(
                 name.as_ref().into(),
