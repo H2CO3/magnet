@@ -19,6 +19,9 @@
 //!
 //! ```rust
 //! #[macro_use]
+//! extern crate serde_derive;
+//! extern crate serde;
+//! #[macro_use]
 //! extern crate bson;
 //! #[macro_use]
 //! extern crate magnet_derive;
@@ -28,31 +31,40 @@
 //! use magnet_schema::BsonSchema;
 //!
 //! #[derive(BsonSchema)]
-//! struct Contact {
+//! struct Person {
 //!     name: String,
 //!     nicknames: HashSet<String>,
 //!     age: usize,
-//!     email: Option<String>,
+//!     contact: Option<Contact>,
+//! }
+//!
+//! #[derive(BsonSchema, Serialize, Deserialize)]
+//! #[serde(tag = "type", content = "value")]
+//! enum Contact {
+//!     Email(String),
+//!     Phone(u64),
 //! }
 //!
 //! fn main() {
-//!     let schema_doc = Contact::bson_schema();
-//!     println!("{:#?}", schema_doc);
+//!     println!("{:#?}", Person::bson_schema());
 //! }
 //! ```
 //!
 //! ## Custom Attributes
-//!
-//! * `#[magnet(rename = "new_name")]`: applied to a `struct` field or an `enum`
-//!   variant, it will rename it to the provided new name when generating the
-//!   JSON schema. This attribute overrides `#[serde(rename = "...")]` (in the
-//!   generated JSON schema only!) if it is present on the same field.
 //!
 //! * `#[serde(rename = "new_name")]`: Magnet will respect Serde's field/variant
 //!   renaming attribute by default, if Magnet's own `rename` is not present.
 //!
 //! * `#[serde(rename_all = "rename_rule")]`: it will also respect Serde's
 //!   `rename_all` rule if Magnet's own `rename` attribute is not specified.
+//!
+//! * `[x]` `magnet(min_incl = "-1337")` &mdash; enforces an inclusive minimum for fields of numeric types
+//!
+//! * `[x]` `magnet(min_excl = "42")` &mdash; enforces an exclusive "minimum" (infimum) for fields of numeric types
+//!
+//! * `[x]` `magnet(max_incl = "63")` &mdash; enforces an inclusive maximum for fields of numeric types
+//!
+//! * `[x]` `magnet(max_excl = "64")` &mdash; enforces an exclusive "maximum" (supremum) for fields of numeric types
 //!
 //! ## Development Roadmap
 //!
@@ -143,7 +155,7 @@
 //!     unlisted additional object fields are allowed provided that they
 //!     conform to the schema of the specified type.
 
-#![doc(html_root_url = "https://docs.rs/magnet_schema/0.2.1")]
+#![doc(html_root_url = "https://docs.rs/magnet_schema/0.3.0")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
         unsafe_code,

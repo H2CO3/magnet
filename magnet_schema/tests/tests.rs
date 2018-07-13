@@ -21,9 +21,9 @@ use bson::{ Bson, Document };
 
 /// An unordered document: one that doesn't care about the order of its keys.
 #[derive(Debug, Clone)]
-struct UnorderedDoc(Document);
+struct UnorderedDoc<'a>(&'a Document);
 
-impl PartialEq for UnorderedDoc {
+impl<'a> PartialEq for UnorderedDoc<'a> {
     fn eq(&self, other: &Self) -> bool {
         if self.0.len() != other.0.len() {
             return false;
@@ -38,8 +38,8 @@ impl PartialEq for UnorderedDoc {
             match (value_lhs, value_rhs) {
                 (&Bson::Document(ref doc_lhs),
                  &Bson::Document(ref doc_rhs)) => {
-                    let unord_lhs = UnorderedDoc(doc_lhs.clone());
-                    let unord_rhs = UnorderedDoc(doc_rhs.clone());
+                    let unord_lhs = UnorderedDoc(doc_lhs);
+                    let unord_rhs = UnorderedDoc(doc_rhs);
                     unord_lhs == unord_rhs
                 },
                 (&Bson::Array(ref arr_lhs), &Bson::Array(ref arr_rhs)) => {
@@ -50,8 +50,8 @@ impl PartialEq for UnorderedDoc {
                     arr_lhs.iter().zip(arr_rhs).all(|args| match args {
                         (&Bson::Document(ref doc_lhs),
                          &Bson::Document(ref doc_rhs)) => {
-                            let unord_lhs = UnorderedDoc(doc_lhs.clone());
-                            let unord_rhs = UnorderedDoc(doc_rhs.clone());
+                            let unord_lhs = UnorderedDoc(doc_lhs);
+                            let unord_rhs = UnorderedDoc(doc_rhs);
                             unord_lhs == unord_rhs
                         },
                         _ => args.0 == args.1,
@@ -63,7 +63,7 @@ impl PartialEq for UnorderedDoc {
     }
 }
 
-impl fmt::Display for UnorderedDoc {
+impl<'a> fmt::Display for UnorderedDoc<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
             serde_json::to_writer_pretty(
@@ -105,8 +105,10 @@ macro_rules! assert_doc_eq {
         let lhs_str = stringify!($lhs);
         let rhs_str = stringify!($rhs);
 
-        let lhs = UnorderedDoc($lhs.clone());
-        let rhs = UnorderedDoc($rhs.clone());
+        let lhs_val = &$lhs;
+        let rhs_val = &$rhs;
+        let lhs = UnorderedDoc(lhs_val);
+        let rhs = UnorderedDoc(rhs_val);
 
         assert!(lhs == rhs,
                 "Line: {}, {} != {}! Values:\n{:#}\n-- VS. --\n{:#}",
@@ -119,8 +121,10 @@ macro_rules! assert_doc_ne {
         let lhs_str = stringify!($lhs);
         let rhs_str = stringify!($rhs);
 
-        let lhs = UnorderedDoc($lhs.clone());
-        let rhs = UnorderedDoc($rhs.clone());
+        let lhs_val = &$lhs;
+        let rhs_val = &$rhs;
+        let lhs = UnorderedDoc(lhs_val);
+        let rhs = UnorderedDoc(rhs_val);
 
         assert!(lhs != rhs,
                 "Line {}: {} == {}! Values:\n{:#}\n-- VS. --\n{:#}",

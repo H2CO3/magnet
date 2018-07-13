@@ -13,6 +13,9 @@ The defined `BsonSchema` trait defines a single function, `bson_schema`, which s
 
 ```rust
 #[macro_use]
+extern crate serde_derive;
+extern crate serde;
+#[macro_use]
 extern crate bson;
 #[macro_use]
 extern crate magnet_derive;
@@ -22,27 +25,33 @@ extern crate mongodb;
 use std::collections::HashSet;
 use magnet_schema::BsonSchema;
 
-use mongodb::{ Client, ThreadedClient, Error, Result, CommandType };
-use mongodb::db::{ Database, ThreadedDatabase };
-use mongodb::coll::Collection;
+use mongodb::{ Client, ThreadedClient, CommandType };
+use mongodb::db::{ ThreadedDatabase };
 
 #[derive(BsonSchema)]
-struct Contact {
+struct Person {
     name: String,
     nicknames: HashSet<String>,
     age: usize,
-    email: Option<String>,
+    contact: Option<Contact>,
+}
+
+#[derive(BsonSchema, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
+enum Contact {
+    Email(String),
+    Phone(u64),
 }
 
 fn main() {
-    let schema = Contact::bson_schema();
+    let schema = Person::bson_schema();
     let spec = doc! {
-        "create": "Contact",
+        "create": "Person",
         "validator": { "$jsonSchema": schema },
     };
     let client = Client::connect("localhost", 27017).expect("can't connect to mongod");
     let db = client.db("Example");
-    let result = db.command(spec, CommandType::CreateCollection, None).expect("network error");
+    db.command(spec, CommandType::CreateCollection, None).expect("network error");
     // etc.
 }
 ```
@@ -50,6 +59,17 @@ fn main() {
 For milestones and custom `#[attributes]`, please see the [documentation](https://docs.rs/magnet_schema).
 
 ## Release Notes
+
+### v0.3.0
+
+* Remove `#[magnet(rename = "...")]` attribute
+* `UnorderedDoc::eq()`, `assert_doc_eq!` and `assert_doc_ne!` no longer clone their arguments
+* Update `syn` and `quote` dependencies
+* Improve documentation
+
+### v0.2.1
+
+* Update `bson` dependency
 
 ### v0.2.0
 
