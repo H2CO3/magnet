@@ -20,7 +20,7 @@ use magnet_schema::BsonSchema;
 use bson::{ Bson, Document };
 
 /// An unordered document: one that doesn't care about the order of its keys.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct UnorderedDoc<'a>(&'a Document);
 
 impl<'a> PartialEq for UnorderedDoc<'a> {

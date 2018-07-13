@@ -53,7 +53,7 @@
 //! ## Custom Attributes
 //!
 //! * `#[serde(rename = "new_name")]`: Magnet will respect Serde's field/variant
-//!   renaming attribute by default, if Magnet's own `rename` is not present.
+//!   renaming attribute by default.
 //!
 //! * `#[serde(rename_all = "rename_rule")]`: it will also respect Serde's
 //!   `rename_all` rule if Magnet's own `rename` attribute is not specified.
@@ -189,7 +189,6 @@ extern crate uuid;
 use std::{ u8, u16, u32, u64, usize, i8, i16, i32, i64, isize };
 use std::ffi::{ OsStr, OsString };
 use std::path::{ Path, PathBuf };
-use std::fmt::Display;
 use std::hash::BuildHasher;
 use std::borrow::Cow;
 use std::rc::Rc;
@@ -515,7 +514,7 @@ impl<T> BsonSchema for BTreeSet<T> where T: BsonSchema {
 }
 
 impl<K, V, H> BsonSchema for HashMap<K, V, H>
-    where K: Display,
+    where K: ToString,
           V: BsonSchema,
           H: BuildHasher
 {
@@ -528,7 +527,7 @@ impl<K, V, H> BsonSchema for HashMap<K, V, H>
 }
 
 impl<K, V> BsonSchema for BTreeMap<K, V>
-    where K: Display,
+    where K: ToString,
           V: BsonSchema
 {
     fn bson_schema() -> Document {
