@@ -35,6 +35,7 @@
 extern crate quote;
 extern crate syn;
 extern crate proc_macro;
+extern crate proc_macro2;
 
 mod tag;
 mod case;

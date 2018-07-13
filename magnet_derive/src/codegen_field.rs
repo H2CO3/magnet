@@ -1,9 +1,9 @@
 //! Common part of codegen for `struct`s and `enum` variants.
 
-use quote::Tokens;
 use syn::{ Attribute, Field, Fields, MetaNameValue };
 use syn::punctuated::{ Punctuated, Pair };
 use syn::token::Comma;
+use proc_macro2::TokenStream;
 use case::RenameRule;
 use error::{ Error, Result };
 use meta::*;
@@ -18,7 +18,7 @@ pub struct TagExtra<'a> {
 }
 
 /// Implements `BsonSchema` for a struct or variant with the given fields.
-pub fn impl_bson_schema_fields(attrs: &[Attribute], fields: Fields) -> Result<Tokens> {
+pub fn impl_bson_schema_fields(attrs: &[Attribute], fields: Fields) -> Result<TokenStream> {
     impl_bson_schema_fields_extra(attrs, fields, None)
 }
 
@@ -28,7 +28,7 @@ pub fn impl_bson_schema_fields_extra(
     attrs: &[Attribute],
     fields: Fields,
     extra: Option<TagExtra>
-) -> Result<Tokens> {
+) -> Result<TokenStream> {
     match fields {
         Fields::Named(fields) => {
             impl_bson_schema_named_fields(attrs, fields.named, extra)
@@ -48,7 +48,7 @@ fn impl_bson_schema_named_fields(
     attrs: &[Attribute],
     fields: Punctuated<Field, Comma>,
     extra: Option<TagExtra>,
-) -> Result<Tokens> {
+) -> Result<TokenStream> {
     let properties = &field_names(attrs, &fields)?;
     let defs: Vec<_> = fields.iter().map(field_def).collect::<Result<_>>()?;
     let tokens = if let Some(TagExtra { tag, variant }) = extra {
@@ -82,7 +82,7 @@ fn impl_bson_schema_named_fields(
 /// Generates code for the value part of a key-value pair in a schema,
 /// corresponding to a single named struct field.
 /// TODO(H2CO3): check if field is numeric if bounded?
-fn field_def(field: &Field) -> Result<Tokens> {
+fn field_def(field: &Field) -> Result<TokenStream> {
     let ty = &field.ty;
     let min_incl = magnet_meta_name_value(&field.attrs, "min_incl")?;
     let min_excl = magnet_meta_name_value(&field.attrs, "min_excl")?;
@@ -103,7 +103,7 @@ fn field_def(field: &Field) -> Result<Tokens> {
 }
 
 /// Parses meta attrs into quoted `Bound`s.
-fn bounds_from_meta(incl: Option<MetaNameValue>, excl: Option<MetaNameValue>) -> Result<Tokens> {
+fn bounds_from_meta(incl: Option<MetaNameValue>, excl: Option<MetaNameValue>) -> Result<TokenStream> {
     // Inclusive takes precedence over exclusive (form a union).
     // TODO(H2CO3): this could be the other way around (when both
     // inclusive and exclusive bounds specified, form an intersection)
@@ -148,9 +148,9 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
         let rename = serde_meta_name_value(&field.attrs, "rename")?;
         let name = match rename {
             Some(nv) => meta_value_as_str(&nv)?,
-            None => rename_all.map_or(
-                name.as_ref().into(),
-                |rule| rule.apply_to_field(name.as_ref()),
+            None => rename_all.map_or_else(
+                || name.to_string(),
+                |rule| rule.apply_to_field(name.to_string()),
             ),
         };
 
@@ -165,7 +165,7 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
 fn impl_bson_schema_indexed_fields(
     mut fields: Punctuated<Field, Comma>,
     extra: Option<TagExtra>,
-) -> Result<Tokens> {
+) -> Result<TokenStream> {
     if extra.is_some() && fields.len() != 1 {
         return Err(Error::new("internal tagging not usable with tuple variant"))
     }
@@ -211,6 +211,6 @@ fn impl_bson_schema_indexed_fields(
 }
 
 /// Implements `BsonSchema` for a unit `struct` or variant with no fields.
-fn impl_bson_schema_unit_field() -> Result<Tokens> {
+fn impl_bson_schema_unit_field() -> Result<TokenStream> {
     Ok(quote!{ <() as ::magnet_schema::BsonSchema>::bson_schema() })
 }

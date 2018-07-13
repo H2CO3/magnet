@@ -41,9 +41,9 @@ pub enum RenameRule {
 }
 
 impl RenameRule {
-    pub fn apply_to_variant(self, variant: &str) -> String {
+    pub fn apply_to_variant(self, variant: String) -> String {
         match self {
-            PascalCase => variant.to_owned(),
+            PascalCase => variant,
             LowerCase => variant.to_ascii_lowercase(),
             Uppercase => variant.to_ascii_uppercase(),
             CamelCase => variant[..1].to_ascii_lowercase() + &variant[1..],
@@ -65,9 +65,9 @@ impl RenameRule {
         }
     }
 
-    pub fn apply_to_field(self, field: &str) -> String {
+    pub fn apply_to_field(self, field: String) -> String {
         match self {
-            LowerCase | SnakeCase => field.to_owned(),
+            LowerCase | SnakeCase => field,
             Uppercase => field.to_ascii_uppercase(),
             PascalCase => {
                 let mut pascal = String::new();

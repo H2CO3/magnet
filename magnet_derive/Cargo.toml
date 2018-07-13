@@ -15,5 +15,6 @@ categories    = ["database", "database-implementations", "development-tools", "a
 proc-macro = true
 
 [dependencies]
-syn = "0.13.11"
-quote = "0.5.2"
+proc-macro2 = "0.4.6"
+syn = "0.14.4"
+quote = "0.6.3"

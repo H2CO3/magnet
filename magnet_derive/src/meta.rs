@@ -11,7 +11,7 @@ fn meta(attrs: &[Attribute], name: &str, key: &str) -> Option<Meta> {
     attrs.iter().filter_map(|attr| {
         let meta_list = match attr.interpret_meta()? {
             Meta::List(list) => {
-                if list.ident.as_ref() == name {
+                if list.ident == name {
                     list
                 } else {
                     return None;
@@ -26,13 +26,13 @@ fn meta(attrs: &[Attribute], name: &str, key: &str) -> Option<Meta> {
                 _ => return None,
             };
 
-            let ident = match meta {
+            let ident = match meta.clone() {
                 Meta::Word(ident) => ident,
-                Meta::List(ref list) => list.ident,
-                Meta::NameValue(ref name_value) => name_value.ident,
+                Meta::List(list) => list.ident,
+                Meta::NameValue(name_value) => name_value.ident,
             };
 
-            if ident.as_ref() == key {
+            if ident == key {
                 Some(meta)
             } else {
                 None
