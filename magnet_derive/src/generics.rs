@@ -18,9 +18,8 @@ pub trait GenericsExt: Sized {
 
 impl GenericsExt for Generics {
     fn with_bson_schema(self) -> (TokenStream, TokenStream, TokenStream) {
-        // no type parameters
         if self.lt_token.is_none() || self.gt_token.is_none() {
-            return (TokenStream::new(), TokenStream::new(), TokenStream::new());
+            return Default::default(); // no type parameters
         }
 
         let self_params: Vec<_> = self.params

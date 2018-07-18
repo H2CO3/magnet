@@ -60,6 +60,11 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.3.1
+
+* Relax `Display` bound for `HashMap`/`BTreeMap` keys, use `ToString` instead
+* Update `proc_macro2` dependency so that we can use `TokenStream::default()`
+
 ### v0.3.0
 
 * Remove `#[magnet(rename = "...")]` attribute
