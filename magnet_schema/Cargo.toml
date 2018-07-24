@@ -1,6 +1,6 @@
 [package]
 name          = "magnet_schema"
-version       = "0.3.1" # remember to update html_root_url in lib.rs and magnet_derive/src/lib.rs
+version       = "0.3.2" # remember to update html_root_url in lib.rs and magnet_derive/src/lib.rs
 authors       = ["Árpád Goretity <h2co3@h2co3.org>"]
 repository    = "https://github.com/H2CO3/magnet.git"
 homepage      = "https://h2co3.github.io/magnet/"
@@ -19,7 +19,7 @@ url = { version = "1.5", optional = true }
 uuid = { version = "0.6", optional = true }
 
 [dev-dependencies]
-magnet_derive = { path = "../magnet_derive", version = "0.3.1" }
+magnet_derive = { path = "../magnet_derive", version = "0.3.2" }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"

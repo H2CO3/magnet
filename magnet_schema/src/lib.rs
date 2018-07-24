@@ -56,15 +56,21 @@
 //!   renaming attribute by default.
 //!
 //! * `#[serde(rename_all = "rename_rule")]`: it will also respect Serde's
-//!   `rename_all` rule if Magnet's own `rename` attribute is not specified.
+//!   `rename_all` rule.
 //!
-//! * `[x]` `magnet(min_incl = "-1337")` &mdash; enforces an inclusive minimum for fields of numeric types
+//! * `#[magnet(top_level_id)]` - when this attribute is present on a type, an
+//!   `"_id"` field with the value `<bson::oid::ObjectId as BsonSchema>::bson_schema()`
+//!   will be added to the generated schema of the type. This is intended to be
+//!   used with top-level documents which are added directly to a MongoDB
+//!   collection but which make no use of the always-present `_id` field.
 //!
-//! * `[x]` `magnet(min_excl = "42")` &mdash; enforces an exclusive "minimum" (infimum) for fields of numeric types
+//! * `#[magnet(min_incl = "-1337")]` &mdash; enforces an inclusive minimum for fields of numeric types
 //!
-//! * `[x]` `magnet(max_incl = "63")` &mdash; enforces an inclusive maximum for fields of numeric types
+//! * `#[magnet(min_excl = "42")]` &mdash; enforces an exclusive "minimum" (infimum) for fields of numeric types
 //!
-//! * `[x]` `magnet(max_excl = "64")` &mdash; enforces an exclusive "maximum" (supremum) for fields of numeric types
+//! * `#[magnet(max_incl = "63")]` &mdash; enforces an inclusive maximum for fields of numeric types
+//!
+//! * `#[magnet(max_excl = "64")]` &mdash; enforces an exclusive "maximum" (supremum) for fields of numeric types
 //!
 //! ## Development Roadmap
 //!
@@ -155,7 +161,7 @@
 //!     unlisted additional object fields are allowed provided that they
 //!     conform to the schema of the specified type.
 
-#![doc(html_root_url = "https://docs.rs/magnet_schema/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/magnet_schema/0.3.2")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
         unsafe_code,
@@ -196,6 +202,7 @@ use std::cell::{ Cell, RefCell };
 use std::sync::{ Arc, Mutex, RwLock };
 use std::collections::{ HashSet, HashMap, BTreeSet, BTreeMap };
 use bson::{ Bson, Document };
+use bson::oid::ObjectId;
 
 #[doc(hidden)]
 pub mod support;
@@ -541,6 +548,18 @@ impl<K, V> BsonSchema for BTreeMap<K, V>
 ////////////////////////////////////////////////////////
 // Implementations for useful types in foreign crates //
 ////////////////////////////////////////////////////////
+
+impl BsonSchema for Document {
+    fn bson_schema() -> Document {
+        doc!{ "type": "object" }
+    }
+}
+
+impl BsonSchema for ObjectId {
+    fn bson_schema() -> Document {
+        doc!{ "bsonType": "objectId" }
+    }
+}
 
 #[cfg(feature = "url")]
 impl BsonSchema for url::Url {

@@ -7,7 +7,7 @@
 [![Lines of Code](https://tokei.rs/b1/github/H2CO3/magnet)](https://github.com/Aaronepower/tokei)
 [![Twitter](https://img.shields.io/badge/twitter-@H2CO3_iOS-blue.svg?style=flat&colorB=64A5DE&label=Twitter)](http://twitter.com/H2CO3_iOS)
 
-These two related crates, `magnet_derive` and `magnet_schema` help you define (and, in most cases, automatically derive) MongoDB-flavored [JSON schemas](https://docs.mongodb.com/manual/reference/operator/query/jsonSchema/#extensions) for your domain model types. Currently, the primary use case for this library is to make it easy to validate serializeable types when using the [MongoDB Rust driver](https://docs.rs/mongodb/).
+These two related crates, `magnet_derive` and `magnet_schema` help you define (and, in most cases, automatically derive) MongoDB-flavored [JSON schemas](https://docs.mongodb.com/manual/reference/operator/query/jsonSchema/#extensions) for your domain model types. Currently, the primary use case for this library is to make it easy to validate serializeable types when using [Avocado](https://docs.rs/avocado/) or the [MongoDB Rust driver](https://docs.rs/mongodb/).
 
 The defined `BsonSchema` trait defines a single function, `bson_schema`, which should/will return a Bson `Document` that is a valid JSON schema describing the structure of the implementing type. Example:
 
@@ -59,6 +59,15 @@ fn main() {
 For milestones and custom `#[attributes]`, please see the [documentation](https://docs.rs/magnet_schema).
 
 ## Release Notes
+
+### v0.3.2
+
+* `impl BsonSchema for Document`
+* `impl BsonSchema for ObjectId`
+* Add `#[magnet(top_level_id)]` attribute for use with top-level types
+  that do not care about MongoDB's mandatory `_id` field
+* Documentation improvements
+* Update dependencies
 
 ### v0.3.1
 
