@@ -4,6 +4,21 @@ use std::f64;
 use syn::{ Attribute, Meta, NestedMeta, MetaNameValue, Lit };
 use error::{ Error, Result };
 
+pub fn doc_meta(attrs: &[Attribute]) -> Option<MetaNameValue> {
+    let mut value = attrs.iter().filter_map(|attr| {
+        if let Some(meta) = attr.interpret_meta() {
+            match meta {
+                Meta::NameValue(ref val) if val.ident == "doc" => {
+                    return Some(val.clone())
+                }
+                _ => {},
+            };
+        }
+        None
+    });
+    value.next()
+}
+
 /// Returns the inner, `...` part of the first `#[name(...)]` attribute
 /// with the specified name (like `#[magnet(key ( = "value")?)]`).
 /// TODO(H2CO3): check for duplicate arguments and bail out with an error

@@ -16,6 +16,10 @@ pub fn impl_bson_schema_enum(attrs: Vec<Attribute>, ast: DataEnum) -> Result<Tok
         Some(s) => Some(meta_value_as_str(&s)?.parse()?),
         None => None,
     };
+    let doc = doc_meta(&attrs).and_then(|doc| meta_value_as_str(&doc).ok());
+    let doc = quote! {
+        "description": #doc
+    };
     let tagging = SerdeEnumTag::from_attrs(&attrs)?;
 
     let variants: Vec<_> = ast.variants
@@ -25,6 +29,7 @@ pub fn impl_bson_schema_enum(attrs: Vec<Attribute>, ast: DataEnum) -> Result<Tok
 
     let tokens = quote! {
         doc! {
+            #doc,
             "anyOf": [ #(#variants,)* ]
         }
     };
