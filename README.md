@@ -64,8 +64,6 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 * `impl BsonSchema for Document`
 * `impl BsonSchema for ObjectId`
-* Add `#[magnet(top_level_id)]` attribute for use with top-level types
-  that do not care about MongoDB's mandatory `_id` field
 * Documentation improvements
 * Update dependencies
 
