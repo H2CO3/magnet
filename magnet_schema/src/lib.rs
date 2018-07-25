@@ -58,12 +58,6 @@
 //! * `#[serde(rename_all = "rename_rule")]`: it will also respect Serde's
 //!   `rename_all` rule.
 //!
-//! * `#[magnet(top_level_id)]` - when this attribute is present on a type, an
-//!   `"_id"` field with the value `<bson::oid::ObjectId as BsonSchema>::bson_schema()`
-//!   will be added to the generated schema of the type. This is intended to be
-//!   used with top-level documents which are added directly to a MongoDB
-//!   collection but which make no use of the always-present `_id` field.
-//!
 //! * `#[magnet(min_incl = "-1337")]` &mdash; enforces an inclusive minimum for fields of numeric types
 //!
 //! * `#[magnet(min_excl = "42")]` &mdash; enforces an exclusive "minimum" (infimum) for fields of numeric types
