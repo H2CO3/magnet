@@ -60,6 +60,14 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.3.3
+
+* Fix a bug where `Option<enum>` was not allowed to be `null`/`None` by the
+  generated BSON schema
+* Remove an incorrect item from the documentation
+* Fix several Clippy lints
+* Update dependencies
+
 ### v0.3.2
 
 * `impl BsonSchema for Document`

@@ -822,3 +822,30 @@ fn serde_rename_enum_variant() {
         ],
     });
 }
+
+#[test]
+fn optional_enum() {
+    #[allow(dead_code)]
+    #[derive(Serialize, BsonSchema)]
+    enum Value {
+        Val(String)
+    }
+
+    assert_doc_eq!(Option::<Value>::bson_schema(), doc!{
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["Val"],
+                "properties": {
+                    "Val": {
+                        "type": "string"
+                    },
+                },
+            },
+            {
+                "type": "null"
+            },
+        ]
+    });
+}

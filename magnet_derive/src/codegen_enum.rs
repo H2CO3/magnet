@@ -6,14 +6,14 @@ use error::{ Error, Result };
 use case::RenameRule;
 use tag::SerdeEnumTag;
 use codegen_field::*;
-use meta::*;
+use meta;
 
 /// Implements `BsonSchema` for an `enum`.
 /// TODO(H2CO3): implement me
 pub fn impl_bson_schema_enum(attrs: Vec<Attribute>, ast: DataEnum) -> Result<TokenStream> {
-    let rename_all_str = serde_meta_name_value(&attrs, "rename_all")?;
+    let rename_all_str = meta::serde_name_value(&attrs, "rename_all")?;
     let rename_all: Option<RenameRule> = match rename_all_str {
-        Some(s) => Some(meta_value_as_str(&s)?.parse()?),
+        Some(s) => Some(meta::value_as_str(&s)?.parse()?),
         None => None,
     };
     let tagging = SerdeEnumTag::from_attrs(&attrs)?;
@@ -39,13 +39,13 @@ fn variant_schema(
     tagging: &SerdeEnumTag,
 ) -> Result<TokenStream> {
     // check for renaming directive attribute
-    if magnet_meta_name_value(&variant.attrs, "rename")?.is_some() {
+    if meta::magnet_name_value(&variant.attrs, "rename")?.is_some() {
         return Err(Error::new("`#[magnet(rename = \"...\")]` no longer exists"))
     }
 
-    let rename = serde_meta_name_value(&variant.attrs, "rename")?;
+    let rename = meta::serde_name_value(&variant.attrs, "rename")?;
     let variant_name = match rename {
-        Some(nv) => meta_value_as_str(&nv)?,
+        Some(nv) => meta::value_as_str(&nv)?,
         None => rename_all.map_or_else(
             || variant.ident.to_string(),
             |rule| rule.apply_to_variant(variant.ident.to_string()),

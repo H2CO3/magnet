@@ -9,6 +9,7 @@ use proc_macro2::{ TokenStream, Span };
 use quote::ToTokens;
 
 /// Helper for extending generics with the `: BsonSchema` trait bound.
+#[cfg_attr(feature = "cargo-clippy", allow(stutter))]
 pub trait GenericsExt: Sized {
     /// The first return value is the `impl` generic parameter list on the left.
     /// The second one is just the list of names of type and lifetime arguments.

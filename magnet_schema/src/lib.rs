@@ -155,7 +155,7 @@
 //!     unlisted additional object fields are allowed provided that they
 //!     conform to the schema of the specified type.
 
-#![doc(html_root_url = "https://docs.rs/magnet_schema/0.3.2")]
+#![doc(html_root_url = "https://docs.rs/magnet_schema/0.3.3")]
 #![deny(missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
         unsafe_code,
@@ -466,7 +466,14 @@ impl<T> BsonSchema for Option<T> where T: BsonSchema {
             Some(spec) => ("type", spec),
             None => match doc.remove("bsonType") {
                 Some(spec) => ("bsonType", spec),
-                None => return doc, // type wasn't constrained; nothing to do
+                None => {
+                    // type wasn't directly constrained;
+                    // as a last resort, check if it's an `enum`.
+                    if let Some(&mut Bson::Array(ref mut array)) = doc.get_mut("anyOf") {
+                        array.push(bson!({ "type": null_bson_str }));
+                    }
+                    return doc;
+                }
             }
         };
         let new_type_spec = match old_type_spec {

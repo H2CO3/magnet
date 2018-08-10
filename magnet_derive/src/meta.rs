@@ -44,7 +44,7 @@ fn meta(attrs: &[Attribute], name: &str, key: &str) -> Option<Meta> {
 }
 
 /// Search for an attribute, provided that it's a name-value pair.
-fn meta_name_value(attrs: &[Attribute], name: &str, key: &str) -> Result<Option<MetaNameValue>> {
+fn name_value(attrs: &[Attribute], name: &str, key: &str) -> Result<Option<MetaNameValue>> {
     match meta(attrs, name, key) {
         Some(Meta::NameValue(name_value)) => Ok(Some(name_value)),
         Some(_) => {
@@ -68,23 +68,23 @@ fn has_meta_word(attrs: &[Attribute], name: &str, key: &str) -> Result<bool> {
 }
 
 /// Search for a `Magnet` attribute, provided that it's a name-value pair.
-pub fn magnet_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
-    meta_name_value(attrs, "magnet", key)
+pub fn magnet_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
+    name_value(attrs, "magnet", key)
 }
 
 /// Search for a `Serde` attribute, provided that it's a name-value pair.
-pub fn serde_meta_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
-    meta_name_value(attrs, "serde", key)
+pub fn serde_name_value(attrs: &[Attribute], key: &str) -> Result<Option<MetaNameValue>> {
+    name_value(attrs, "serde", key)
 }
 
 /// Search for a `Serde` attribute, provided that it's a single word.
-pub fn has_serde_meta_word(attrs: &[Attribute], key: &str) -> Result<bool> {
+pub fn has_serde_word(attrs: &[Attribute], key: &str) -> Result<bool> {
     has_meta_word(attrs, "serde", key)
 }
 
 /// Extracts a string value from an attribute value.
 /// Returns `Err` if the value is not a `LitStr` nor a valid UTF-8 `LitByteStr`.
-pub fn meta_value_as_str(nv: &MetaNameValue) -> Result<String> {
+pub fn value_as_str(nv: &MetaNameValue) -> Result<String> {
     match nv.lit {
         Lit::Str(ref string) => Ok(string.value()),
         Lit::ByteStr(ref string) => String::from_utf8(string.value()).map_err(Into::into),
@@ -95,7 +95,8 @@ pub fn meta_value_as_str(nv: &MetaNameValue) -> Result<String> {
 /// Extracts a floating-point value from an attribute value.
 /// Returns an `Err` if the literal is not a valid floating-point
 /// number or integer, and not a string that could be parsed as one.
-pub fn meta_value_as_num(nv: &MetaNameValue) -> Result<f64> {
+#[cfg_attr(feature = "cargo-clippy", allow(cast_precision_loss))]
+pub fn value_as_num(nv: &MetaNameValue) -> Result<f64> {
     match nv.lit {
         Lit::Float(ref lit) => Ok(lit.value()),
         Lit::Int(ref lit) => {

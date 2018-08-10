@@ -41,6 +41,8 @@ pub enum RenameRule {
 }
 
 impl RenameRule {
+    /// Returns a string which is the given variant name, renamed according
+    /// to the rule that is `self`.
     pub fn apply_to_variant(self, variant: String) -> String {
         match self {
             PascalCase => variant,
@@ -65,6 +67,8 @@ impl RenameRule {
         }
     }
 
+    /// Returns a string which is the given field name, renamed according
+    /// to the rule that is `self`.
     pub fn apply_to_field(self, field: String) -> String {
         match self {
             LowerCase | SnakeCase => field,

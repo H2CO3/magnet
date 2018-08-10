@@ -6,7 +6,7 @@ use syn::token::Comma;
 use proc_macro2::TokenStream;
 use case::RenameRule;
 use error::{ Error, Result };
-use meta::*;
+use meta;
 
 /// Describes the extra field corresponding to an internally-tagged enum's tag.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,10 +84,10 @@ fn impl_bson_schema_named_fields(
 /// TODO(H2CO3): check if field is numeric if bounded?
 fn field_def(field: &Field) -> Result<TokenStream> {
     let ty = &field.ty;
-    let min_incl = magnet_meta_name_value(&field.attrs, "min_incl")?;
-    let min_excl = magnet_meta_name_value(&field.attrs, "min_excl")?;
-    let max_incl = magnet_meta_name_value(&field.attrs, "max_incl")?;
-    let max_excl = magnet_meta_name_value(&field.attrs, "max_excl")?;
+    let min_incl = meta::magnet_name_value(&field.attrs, "min_incl")?;
+    let min_excl = meta::magnet_name_value(&field.attrs, "min_excl")?;
+    let max_incl = meta::magnet_name_value(&field.attrs, "max_incl")?;
+    let max_excl = meta::magnet_name_value(&field.attrs, "max_excl")?;
     let lower = bounds_from_meta(min_incl, min_excl)?;
     let upper = bounds_from_meta(max_incl, max_excl)?;
 
@@ -109,13 +109,13 @@ fn bounds_from_meta(incl: Option<MetaNameValue>, excl: Option<MetaNameValue>) ->
     // inclusive and exclusive bounds specified, form an intersection)
     // -- I'm not sure, which one makes more sense? Or maybe an error?
     if let Some(nv) = incl {
-        let value = meta_value_as_num(&nv)?;
+        let value = meta::value_as_num(&nv)?;
 
         Ok(quote! {
             ::magnet_schema::support::Bound::Inclusive(#value)
         })
     } else if let Some(nv) = excl {
-        let value = meta_value_as_num(&nv)?;
+        let value = meta::value_as_num(&nv)?;
 
         Ok(quote! {
             ::magnet_schema::support::Bound::Exclusive(#value)
@@ -130,9 +130,9 @@ fn bounds_from_meta(incl: Option<MetaNameValue>, excl: Option<MetaNameValue>) ->
 /// Returns an iterator over the potentially-`#magnet[rename(...)]`d
 /// fields of a struct or variant with named fields.
 fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result<Vec<String>> {
-    let rename_all_str = serde_meta_name_value(attrs, "rename_all")?;
+    let rename_all_str = meta::serde_name_value(attrs, "rename_all")?;
     let rename_all: Option<RenameRule> = match rename_all_str {
-        Some(s) => Some(meta_value_as_str(&s)?.parse()?),
+        Some(s) => Some(meta::value_as_str(&s)?.parse()?),
         None => None,
     };
 
@@ -141,13 +141,13 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
             || Error::new("no name for named field?!")
         )?;
 
-        if magnet_meta_name_value(&field.attrs, "rename")?.is_some() {
+        if meta::magnet_name_value(&field.attrs, "rename")?.is_some() {
             return Err(Error::new("`#[magnet(rename = \"...\")]` no longer exists"))
         }
 
-        let rename = serde_meta_name_value(&field.attrs, "rename")?;
+        let rename = meta::serde_name_value(&field.attrs, "rename")?;
         let name = match rename {
-            Some(nv) => meta_value_as_str(&nv)?,
+            Some(nv) => meta::value_as_str(&nv)?,
             None => rename_all.map_or_else(
                 || name.to_string(),
                 |rule| rule.apply_to_field(name.to_string()),
