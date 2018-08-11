@@ -60,6 +60,13 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.4.0
+
+* Update `bson` to `0.13.0` and require its `u2i` feature. This version fixes a
+  bug where unit struct were serialized as 1-element arrays. The `u2i` feature
+  allows unsigned integers (within the appropriate range) to be serialized as
+  signed integers.
+
 ### v0.3.3
 
 * Fix a bug where `Option<enum>` was not allowed to be `null`/`None` by the
