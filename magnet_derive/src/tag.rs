@@ -6,7 +6,7 @@ use meta;
 
 /// Represents Serde's `enum` tagging convention.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "cargo-clippy", allow(stutter))]
+#[allow(clippy::stutter)]
 pub enum SerdeEnumTag {
     /// An `enum` with the "externally-tagged" representation. The default.
     /// The map key is the name of the variant.

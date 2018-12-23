@@ -95,7 +95,7 @@ pub fn value_as_str(nv: &MetaNameValue) -> Result<String> {
 /// Extracts a floating-point value from an attribute value.
 /// Returns an `Err` if the literal is not a valid floating-point
 /// number or integer, and not a string that could be parsed as one.
-#[cfg_attr(feature = "cargo-clippy", allow(cast_precision_loss))]
+#[allow(clippy::cast_precision_loss)]
 pub fn value_as_num(nv: &MetaNameValue) -> Result<f64> {
     match nv.lit {
         Lit::Float(ref lit) => Ok(lit.value()),
