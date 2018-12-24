@@ -60,6 +60,12 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.5.0
+
+* Handle generic types with default generic parameters correctly, by not including the defaults in the generated `impl` (which would result in a compiler error)
+* Use scoped lints for Clippy
+* Update some dependencies
+
 ### v0.4.0
 
 * Update `bson` to `0.13.0` and require its `u2i` feature. This version fixes a
