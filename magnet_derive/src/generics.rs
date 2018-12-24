@@ -4,12 +4,12 @@ use syn::{ Generics, GenericParam, WhereClause, WherePredicate, PredicateType };
 use syn::{ TypeParamBound, TraitBound, TraitBoundModifier, TypePath };
 use syn::{ Ident, Path, PathSegment };
 use syn::punctuated::Punctuated;
-use syn::token::{ Colon2, Add };
+use syn::token::{ Comma, Colon2, Add };
 use proc_macro2::{ TokenStream, Span };
 use quote::ToTokens;
 
 /// Helper for extending generics with the `: BsonSchema` trait bound.
-#[cfg_attr(feature = "cargo-clippy", allow(stutter))]
+#[allow(clippy::stutter)]
 pub trait GenericsExt: Sized {
     /// The first return value is the `impl` generic parameter list on the left.
     /// The second one is just the list of names of type and lifetime arguments.
@@ -42,8 +42,26 @@ impl GenericsExt for Generics {
                                        .iter()
                                        .filter_map(where_predicate));
 
+        let params_sans_defaults: Punctuated<GenericParam, Comma> = self
+            .params
+            .into_iter()
+            .map(|param| match param {
+                GenericParam::Lifetime(_) => param,
+                GenericParam::Type(mut param) => {
+                    param.eq_token.take();
+                    param.default.take();
+                    GenericParam::Type(param)
+                }
+                GenericParam::Const(mut param) => {
+                    param.eq_token.take();
+                    param.default.take();
+                    GenericParam::Const(param)
+                }
+            })
+            .collect();
+
         (
-            self.params.into_token_stream(),
+            params_sans_defaults.into_token_stream(),
             quote!{ #(#self_params),* },
             where_clause.into_token_stream(),
         )

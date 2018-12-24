@@ -692,7 +692,7 @@ fn malformed_internally_tagged_enum_4() {
 fn generic_struct() {
     #[allow(dead_code)]
     #[derive(BsonSchema)]
-    struct Generic<'a, 'b, T: 'a, U> {
+    struct Generic<'a, 'b: 'a, T: 'a, U = u32> {
         ts: &'a [T],
         title: &'b str,
         other: U,
@@ -721,6 +721,30 @@ fn generic_struct() {
             },
         },
     });
+
+    assert_doc_eq!(Generic::<f64>::bson_schema(), doc! {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+            "ts",
+            "title",
+            "other",
+        ],
+        "properties": {
+            "ts": {
+                "type": "array",
+                "items": {
+                    "type": "number",
+                },
+            },
+            "title": { "type": "string" },
+            "other": {
+                "bsonType": ["int", "long"],
+                "minimum": std::u32::MIN as i64,
+                "maximum": std::u32::MAX as i64,
+            },
+        },
+    });
 }
 
 #[test]
@@ -730,15 +754,20 @@ fn generic_enum() {
     #[allow(dead_code)]
     #[derive(BsonSchema, Serialize)]
     #[serde(tag = "kind")]
-    enum EitherRefMut<'a, L, R> where L: 'a, R: 'a {
+    enum EitherRefMut<
+        'a,
+        'b: 'a,
+        L,
+        R = BTreeMap<&'a str, bool>
+    > where L: 'a, R: 'b {
         Left(&'a mut L),
-        Right(&'a mut R),
+        Right(&'b mut R),
     }
 
-    type E<'life> = EitherRefMut<
-        'life,
+    type E<'life1, 'life2> = EitherRefMut<
+        'life1,
+        'life2,
         HashMap<String, ()>,
-        BTreeMap<&'life str, bool>
     >;
 
     assert_doc_eq!(E::bson_schema(), doc! {
