@@ -70,9 +70,10 @@ fn impl_bson_schema(input: TokenStream) -> Result<TokenStream> {
         Data::Enum(e) => impl_bson_schema_enum(parsed_ast.attrs, e)?,
         Data::Union(u) => impl_bson_schema_union(parsed_ast.attrs, u)?,
     };
-    let (impbounds, tyargs, whbounds) = parsed_ast.generics.with_bson_schema();
+    let generics = parsed_ast.generics;
+    let (impl_gen, ty_gen, where_cls) = generics.split_and_augment_for_impl();
     let generated = quote! {
-        impl<#impbounds> ::magnet_schema::BsonSchema for #ty<#tyargs> #whbounds {
+        impl #impl_gen ::magnet_schema::BsonSchema for #ty #ty_gen #where_cls {
             fn bson_schema() -> ::bson::Document {
                 #impl_ast
             }

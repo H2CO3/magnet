@@ -1,12 +1,14 @@
 //! Parse and extend generic bounds.
 
-use syn::{ Generics, GenericParam, WhereClause, WherePredicate, PredicateType };
-use syn::{ TypeParamBound, TraitBound, TraitBoundModifier, TypePath };
-use syn::{ Ident, Path, PathSegment };
+use syn::{
+    Generics, ImplGenerics, TypeGenerics, GenericParam,
+    WhereClause, WherePredicate, PredicateType,
+    TypeParamBound, TraitBound, TraitBoundModifier, TypePath,
+    Ident, Path, PathSegment,
+};
 use syn::punctuated::Punctuated;
-use syn::token::{ Comma, Colon2, Add };
-use proc_macro2::{ TokenStream, Span };
-use quote::ToTokens;
+use syn::token::{ Colon2, Add };
+use proc_macro2::Span;
 
 /// Helper for extending generics with the `: BsonSchema` trait bound.
 #[allow(clippy::stutter)]
@@ -14,57 +16,36 @@ pub trait GenericsExt: Sized {
     /// The first return value is the `impl` generic parameter list on the left.
     /// The second one is just the list of names of type and lifetime arguments.
     /// The third one is the augmented `where` clause -- the whole point.
-    fn with_bson_schema(self) -> (TokenStream, TokenStream, TokenStream);
+    fn split_and_augment_for_impl(&self) -> (
+        ImplGenerics,
+        TypeGenerics,
+        Option<WhereClause>,
+    );
 }
 
 impl GenericsExt for Generics {
-    fn with_bson_schema(self) -> (TokenStream, TokenStream, TokenStream) {
-        if self.lt_token.is_none() || self.gt_token.is_none() {
-            return Default::default(); // no type parameters
-        }
-
-        let self_params: Vec<_> = self.params
-            .iter()
-            .cloned()
-            .map(|param| match param {
-                GenericParam::Type(ty) => ty.ident.into_token_stream(),
-                GenericParam::Lifetime(lt) => lt.lifetime.into_token_stream(),
-                GenericParam::Const(cst) => cst.ident.into_token_stream(),
-            })
-            .collect();
-
-        let mut where_clause = self.where_clause.unwrap_or(WhereClause {
+    fn split_and_augment_for_impl(&self) -> (
+        ImplGenerics,
+        TypeGenerics,
+        Option<WhereClause>,
+    ) {
+        let (impl_generics, type_generics, where_clause) = self.split_for_impl();
+        let mut where_clause = where_clause.cloned().unwrap_or(WhereClause {
             where_token: Default::default(),
-            predicates: Default::default(),
+            predicates:  Default::default(),
         });
 
         where_clause.predicates.extend(self.params
                                        .iter()
                                        .filter_map(where_predicate));
 
-        let params_sans_defaults: Punctuated<GenericParam, Comma> = self
-            .params
-            .into_iter()
-            .map(|param| match param {
-                GenericParam::Lifetime(_) => param,
-                GenericParam::Type(mut param) => {
-                    param.eq_token.take();
-                    param.default.take();
-                    GenericParam::Type(param)
-                }
-                GenericParam::Const(mut param) => {
-                    param.eq_token.take();
-                    param.default.take();
-                    GenericParam::Const(param)
-                }
-            })
-            .collect();
+        let where_clause = if where_clause.predicates.is_empty() {
+            None
+        } else {
+            Some(where_clause)
+        };
 
-        (
-            params_sans_defaults.into_token_stream(),
-            quote!{ #(#self_params),* },
-            where_clause.into_token_stream(),
-        )
+        (impl_generics, type_generics, where_clause)
     }
 }
 
