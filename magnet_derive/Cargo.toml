@@ -1,6 +1,6 @@
 [package]
 name          = "magnet_derive"
-version       = "0.5.0" # remember to update html_root_url in lib.rs and magnet_schema/src/lib.rs
+version       = "0.6.0" # remember to update html_root_url in lib.rs and magnet_schema/src/lib.rs
 authors       = ["Árpád Goretity <h2co3@h2co3.org>"]
 repository    = "https://github.com/H2CO3/magnet.git"
 homepage      = "https://h2co3.github.io/magnet/"
