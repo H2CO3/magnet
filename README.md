@@ -60,6 +60,12 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.6.0
+
+* `impl BsonSchema` for arrays of size 2<sup>N</sup> between 128 and 65536; and sizes 1.5 * 2<sup>N</sup> between 96 and 1536.
+* Rewrite generics handling using `syn::Generics::split_for_impl`
+* Use scoped lints in `magnet_schema` as well
+
 ### v0.5.0
 
 * Handle generic types with default generic parameters correctly, by not including the defaults in the generated `impl` (which would result in a compiler error)
