@@ -1,5 +1,5 @@
 #![recursion_limit = "128"]
-#![cfg_attr(feature = "cargo-clippy", allow(cast_lossless))]
+#![allow(clippy::cast_lossless)]
 
 #[macro_use]
 extern crate bson;
