@@ -60,6 +60,11 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.7.0
+
+* Upgrade `uuid` dependency to 0.7.1, and include `v4` and `serde` features
+* Upgrade `url` dependency to `1.7.2`
+
 ### v0.6.0
 
 * `impl BsonSchema` for arrays of size 2<sup>N</sup> between 128 and 65536; and sizes 1.5 * 2<sup>N</sup> between 96 and 1536.
