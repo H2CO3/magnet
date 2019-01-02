@@ -60,6 +60,11 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.8.0
+
+* Implement `BsonSchema` for `VecDeque`, `BinaryHeap`, `LinkedList`, `Range`, `RangeInclusive`, and `PhantomData`
+* Add `Eq + Hash` and `Ord` bounds on map keys and set elements where appropriate
+
 ### v0.7.0
 
 * Upgrade `uuid` dependency to 0.7.1, and include `v4` and `serde` features
