@@ -187,12 +187,19 @@ extern crate uuid;
 use std::{ u8, u16, u32, u64, usize, i8, i16, i32, i64, isize };
 use std::ffi::{ OsStr, OsString };
 use std::path::{ Path, PathBuf };
-use std::hash::BuildHasher;
+use std::marker::PhantomData;
+use std::hash::{ Hash, BuildHasher };
 use std::borrow::Cow;
 use std::rc::Rc;
+use std::ops::{ Range, RangeInclusive };
 use std::cell::{ Cell, RefCell };
 use std::sync::{ Arc, Mutex, RwLock };
-use std::collections::{ HashSet, HashMap, BTreeSet, BTreeMap };
+use std::collections::{
+    HashSet, HashMap,
+    BTreeSet, BTreeMap,
+    VecDeque, BinaryHeap,
+    LinkedList,
+};
 use bson::{ Bson, Document };
 use bson::oid::ObjectId;
 
@@ -460,6 +467,33 @@ impl<T> BsonSchema for Vec<T> where T: BsonSchema {
     }
 }
 
+impl<T> BsonSchema for VecDeque<T> where T: BsonSchema {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "array",
+            "items": T::bson_schema(),
+        }
+    }
+}
+
+impl<T> BsonSchema for LinkedList<T> where T: BsonSchema {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "array",
+            "items": T::bson_schema(),
+        }
+    }
+}
+
+impl<T> BsonSchema for BinaryHeap<T> where T: BsonSchema + Ord {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "array",
+            "items": T::bson_schema(),
+        }
+    }
+}
+
 impl<T> BsonSchema for Option<T> where T: BsonSchema {
     fn bson_schema() -> Document {
         let mut doc = T::bson_schema();
@@ -501,7 +535,7 @@ impl<T> BsonSchema for Option<T> where T: BsonSchema {
 }
 
 impl<T, H> BsonSchema for HashSet<T, H>
-    where T: BsonSchema,
+    where T: BsonSchema + Eq + Hash,
           H: BuildHasher
 {
     fn bson_schema() -> Document {
@@ -513,7 +547,7 @@ impl<T, H> BsonSchema for HashSet<T, H>
     }
 }
 
-impl<T> BsonSchema for BTreeSet<T> where T: BsonSchema {
+impl<T> BsonSchema for BTreeSet<T> where T: BsonSchema + Ord {
     fn bson_schema() -> Document {
         doc! {
             "type": "array",
@@ -524,7 +558,7 @@ impl<T> BsonSchema for BTreeSet<T> where T: BsonSchema {
 }
 
 impl<K, V, H> BsonSchema for HashMap<K, V, H>
-    where K: ToString,
+    where K: ToString + Eq + Hash,
           V: BsonSchema,
           H: BuildHasher
 {
@@ -537,7 +571,7 @@ impl<K, V, H> BsonSchema for HashMap<K, V, H>
 }
 
 impl<K, V> BsonSchema for BTreeMap<K, V>
-    where K: ToString,
+    where K: ToString + Ord,
           V: BsonSchema
 {
     fn bson_schema() -> Document {
@@ -545,6 +579,41 @@ impl<K, V> BsonSchema for BTreeMap<K, V>
             "type": "object",
             "additionalProperties": V::bson_schema(),
         }
+    }
+}
+
+impl<T: BsonSchema> BsonSchema for Range<T> {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start", "end"],
+            "properties": {
+                "start": T::bson_schema(),
+                "end":   T::bson_schema(),
+            },
+        }
+    }
+}
+
+impl<T: BsonSchema> BsonSchema for RangeInclusive<T> {
+    fn bson_schema() -> Document {
+        doc! {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start", "end"],
+            "properties": {
+                "start": T::bson_schema(),
+                "end":   T::bson_schema(),
+            },
+        }
+    }
+}
+
+impl<T> BsonSchema for PhantomData<T> {
+    fn bson_schema() -> Document {
+        // it's just a unit struct
+        <() as BsonSchema>::bson_schema()
     }
 }
 

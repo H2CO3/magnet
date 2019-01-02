@@ -203,11 +203,16 @@ fn unordered_doc_equality() {
 
 #[test]
 fn unit_struct() {
+    use std::marker::PhantomData;
+
     #[derive(BsonSchema)]
     struct FstUnit;
 
     #[derive(BsonSchema)]
     struct SndUnit();
+
+    /// intentionally no impl or derive `BsonSchema` - it shouldn't be required!
+    struct PhantomInner;
 
     let unit_schema = doc! {
         "type": ["array", "null"],
@@ -216,12 +221,16 @@ fn unit_struct() {
 
     let fst_schema = FstUnit::bson_schema();
     let snd_schema = SndUnit::bson_schema();
+    let phantom_schema = PhantomData::<PhantomInner>::bson_schema();
 
     assert_doc_eq!(fst_schema, snd_schema);
     assert_doc_eq!(snd_schema, fst_schema);
 
     assert_doc_eq!(fst_schema, unit_schema);
     assert_doc_eq!(snd_schema, unit_schema);
+
+    assert_doc_eq!(phantom_schema, unit_schema);
+    assert_doc_eq!(unit_schema, phantom_schema);
 }
 
 #[test]
@@ -877,4 +886,80 @@ fn optional_enum() {
             },
         ]
     });
+}
+
+#[test]
+fn std_ranges() {
+    use std::i32;
+    use std::ops::{ Range, RangeInclusive };
+
+    #[allow(dead_code)]
+    #[derive(BsonSchema)]
+    struct Ranges {
+        half_open: Range<i32>,
+        closed: RangeInclusive<f64>,
+    }
+
+    assert_doc_eq!(Ranges::bson_schema(), doc!{
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["half_open", "closed"],
+        "properties": {
+            "half_open": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["start", "end"],
+                "properties": {
+                    "start": {
+                        "bsonType": ["int", "long"],
+                        "minimum": i32::MIN as i64,
+                        "maximum": i32::MAX as i64,
+                    },
+                    "end": {
+                        "bsonType": ["int", "long"],
+                        "minimum": i32::MIN as i64,
+                        "maximum": i32::MAX as i64,
+                    },
+                }
+            },
+            "closed": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["start", "end"],
+                "properties": {
+                    "start": {
+                        "type": "number",
+                    },
+                    "end": {
+                        "type": "number",
+                    },
+                }
+            },
+        }
+    });
+}
+
+#[test]
+fn std_sequence_collections() {
+    use std::collections::{ VecDeque, BinaryHeap, LinkedList };
+
+    #[allow(dead_code)]
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, BsonSchema)]
+    enum ElaborateType {
+        Foo(Option<u64>),
+        Bar {
+            field: String,
+        },
+        Qux(Box<[bool; 4]>),
+    }
+
+    let array_schema = doc!{
+        "type": "array",
+        "items": ElaborateType::bson_schema(),
+    };
+
+    assert_doc_eq!(Vec::<ElaborateType>::bson_schema(),        array_schema);
+    assert_doc_eq!(VecDeque::<ElaborateType>::bson_schema(),   array_schema);
+    assert_doc_eq!(BinaryHeap::<ElaborateType>::bson_schema(), array_schema);
+    assert_doc_eq!(LinkedList::<ElaborateType>::bson_schema(), array_schema);
 }
