@@ -34,7 +34,7 @@ pub fn impl_bson_schema_fields_extra(
             impl_bson_schema_named_fields(attrs, fields.named, extra)
         },
         Fields::Unnamed(fields) => {
-            impl_bson_schema_indexed_fields(fields.unnamed, extra)
+            impl_bson_schema_indexed_fields(attrs, fields.unnamed, extra)
         },
         Fields::Unit => {
             assert!(extra.is_none(), "internally-tagged unit should've been handled");
@@ -51,10 +51,17 @@ fn impl_bson_schema_named_fields(
 ) -> Result<TokenStream> {
     let properties = &field_names(attrs, &fields)?;
     let defs: Vec<_> = fields.iter().map(field_def).collect::<Result<_>>()?;
+    let doc = doc_meta(&attrs).and_then(|doc| meta_value_as_str(&doc).ok());
+    let doc = if doc.is_some() {
+        quote! { "description": #doc.trim_left(), }
+    } else {
+        quote! {}
+    };
     let tokens = if let Some(TagExtra { tag, variant }) = extra {
         quote! {
             doc! {
                 "type": "object",
+                #doc
                 "additionalProperties": false,
                 "required": [ #tag, #(#properties,)* ],
                 "properties": {
@@ -67,6 +74,7 @@ fn impl_bson_schema_named_fields(
         quote! {
             doc! {
                 "type": "object",
+                #doc
                 "additionalProperties": false,
                 "required": [ #(#properties,)* ],
                 "properties": {
@@ -90,15 +98,17 @@ fn field_def(field: &Field) -> Result<TokenStream> {
     let max_excl = meta::magnet_name_value(&field.attrs, "max_excl")?;
     let lower = bounds_from_meta(min_incl, min_excl)?;
     let upper = bounds_from_meta(max_incl, max_excl)?;
+    let doc = doc_meta(&field.attrs).and_then(|doc| meta_value_as_str(&doc).ok()).unwrap_or_else(String::new);
 
     Ok(quote! {
-        ::magnet_schema::support::extend_schema_with_bounds(
-            <#ty as ::magnet_schema::BsonSchema>::bson_schema(),
-            ::magnet_schema::support::Bounds {
-                lower: #lower,
-                upper: #upper,
-            },
-        )
+        ::magnet_schema::support::extend_schema_with_doc(
+            ::magnet_schema::support::extend_schema_with_bounds(
+                <#ty as ::magnet_schema::BsonSchema>::bson_schema(),
+                ::magnet_schema::support::Bounds {
+                    lower: #lower,
+                    upper: #upper,
+                },
+            ), #doc)
     })
 }
 
@@ -163,6 +173,7 @@ fn field_names(attrs: &[Attribute], fields: &Punctuated<Field, Comma>) -> Result
 /// Implements `BsonSchema` for a tuple `struct` or variant,
 /// with unnamed (numbered/indexed) fields.
 fn impl_bson_schema_indexed_fields(
+    attrs: &[Attribute],
     mut fields: Punctuated<Field, Comma>,
     extra: Option<TagExtra>,
 ) -> Result<TokenStream> {
