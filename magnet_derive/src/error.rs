@@ -17,7 +17,7 @@ pub struct Error {
     /// The error message.
     message: String,
     /// The underlying error, if any.
-    cause: Option<Box<error::Error>>,
+    cause: Option<Box<dyn error::Error>>,
 }
 
 impl Error {
@@ -44,7 +44,7 @@ impl error::Error for Error {
         &self.message
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         self.cause.as_ref().map(Deref::deref)
     }
 }
