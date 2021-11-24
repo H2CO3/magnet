@@ -60,6 +60,10 @@ For milestones and custom `#[attributes]`, please see the [documentation](https:
 
 ## Release Notes
 
+### v0.9.0
+
+* Upgrade `bson` dependency to 2.0.0
+
 ### v0.8.0
 
 * Implement `BsonSchema` for `VecDeque`, `BinaryHeap`, `LinkedList`, `Range`, `RangeInclusive`, and `PhantomData`

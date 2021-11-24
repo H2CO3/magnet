@@ -84,7 +84,7 @@ struct FmtIoWriter<'a, 'b: 'a>(&'a mut fmt::Formatter<'b>);
 impl<'a, 'b> io::Write for FmtIoWriter<'a, 'b> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         fn io_err<E>(error: E) -> io::Error
-            where E: Into<Box<error::Error + Send + Sync>> {
+            where E: Into<Box<dyn error::Error + Send + Sync>> {
 
             io::Error::new(io::ErrorKind::Other, error)
         }

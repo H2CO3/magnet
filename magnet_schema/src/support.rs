@@ -138,7 +138,7 @@ fn extend_struct_schema_with_tag(mut schema: Document, tag: &str, variant: &str)
 /// Extends a map's schema so that it describes an internally-tagged variant.
 fn extend_map_schema_with_tag(mut schema: Document, tag: &str, variant: &str) -> Document {
     // TODO(H2CO3): check for existence of the two following fields?
-    schema.insert("required", vec![ tag.into() ]);
+    schema.insert("required", vec![ Bson::from(tag) ]);
     schema.insert("properties", doc!{ tag: { "enum": [ variant ] } });
 
     schema
